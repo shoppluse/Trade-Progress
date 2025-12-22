@@ -3,131 +3,330 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trading P&L Tracker</title>
+  <title>Trading P&L Tracker Pro</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
       min-height: 100vh;
       padding: 20px;
-      color: #333;
+      color: #e2e8f0;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
-    h1 { text-align: center; color: white; margin-bottom: 30px; font-size: 2.5em; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { 
+      text-align: center; 
+      background: linear-gradient(45deg, #10b981, #f59e0b, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 30px; 
+      font-size: 3em; 
+      font-weight: 800;
+      text-shadow: 0 0 30px rgba(255,255,255,0.3);
+    }
     
-    .stats { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
-    .stat-card {
-      background: rgba(255,255,255,0.95);
-      padding: 20px; border-radius: 12px;
-      flex: 1; min-width: 200px; text-align: center;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    .stats { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px; 
+      margin-bottom: 25px; 
     }
-    .total-profit { font-size: 2.5em; font-weight: bold; }
-    .profit { color: #10b981; }
-    .loss { color: #ef4444; }
+    .stat-card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      padding: 25px; 
+      border-radius: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .stat-label { font-size: 0.9em; opacity: 0.8; margin-bottom: 10px; }
+    .stat-value { 
+      font-size: 2.2em; 
+      font-weight: 800; 
+      margin-bottom: 5px;
+    }
+    .profit { color: #10b981 !important; text-shadow: 0 0 20px rgba(16,185,129,0.5); }
+    .loss { color: #ef4444 !important; text-shadow: 0 0 20px rgba(239,68,68,0.5); }
     
     .chart-container { 
-      background: rgba(255,255,255,0.95); 
-      padding: 25px; border-radius: 12px; 
-      margin-bottom: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.08); 
+      backdrop-filter: blur(20px);
+      padding: 20px; 
+      border-radius: 20px; 
+      margin-bottom: 25px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
     .entry-form {
-      background: rgba(255,255,255,0.95);
-      padding: 25px; border-radius: 12px;
-      margin-bottom: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      padding: 30px; 
+      border-radius: 20px;
+      margin-bottom: 25px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     }
-    .form-row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+    .form-title { 
+      margin-bottom: 25px; 
+      font-size: 1.5em; 
+      text-align: center;
+      background: linear-gradient(45deg, #10b981, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .form-row { display: flex; gap: 15px; align-items: end; }
     input, textarea, select {
-      padding: 12px; border: 2px solid #e5e7eb;
-      border-radius: 8px; font-size: 16px; flex: 1;
+      padding: 15px; 
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 12px; 
+      font-size: 16px; 
+      background: rgba(255,255,255,0.1);
+      color: white;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
     }
-    input:focus, textarea:focus { outline: none; border-color: #667eea; }
-    button {
-      padding: 12px 24px; background: #667eea;
-      color: white; border: none; border-radius: 8px;
-      font-size: 16px; cursor: pointer;
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.6); }
+    input:focus, textarea:focus, select:focus { 
+      outline: none; 
+      border-color: #667eea; 
+      box-shadow: 0 0 20px rgba(102,126,234,0.5);
+      background: rgba(255,255,255,0.2);
     }
-    button:hover { background: #5a67d8; }
+    .pnl-selector {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .pnl-btn {
+      padding: 15px; border: 2px solid; border-radius: 12px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      transition: all 0.3s ease; position: relative; overflow: hidden;
+    }
+    .pnl-btn.profit { 
+      background: rgba(16,185,129,0.2); 
+      border-color: #10b981; 
+      color: #10b981;
+    }
+    .pnl-btn.loss { 
+      background: rgba(239,68,68,0.2); 
+      border-color: #ef4444; 
+      color: #ef4444;
+    }
+    .pnl-btn.active { 
+      background: rgba(255,255,255,0.3) !important;
+      transform: scale(1.02);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    button.add-trade {
+      padding: 18px 40px; 
+      background: linear-gradient(45deg, #10b981, #059669);
+      color: white; 
+      border: none; 
+      border-radius: 12px;
+      font-size: 18px; 
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      grid-column: 1 / -1;
+    }
+    button.add-trade:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(16,185,129,0.4);
+    }
+    
+    .image-preview {
+      width: 100px; height: 100px;
+      border-radius: 12px; object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.3);
+      margin-top: 10px;
+    }
     
     .history {
-      background: rgba(255,255,255,0.95);
-      padding: 25px; border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(20px);
+      padding: 30px; 
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
     }
-    .history h3 { margin-bottom: 20px; color: #374151; }
+    .history h3 { 
+      margin-bottom: 25px; 
+      font-size: 1.6em;
+      background: linear-gradient(45deg, #f59e0b, #d97706);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
     .entry {
-      display: flex; gap: 15px; padding: 15px;
-      border-bottom: 1px solid #e5e7eb; align-items: center;
+      display: grid;
+      grid-template-columns: 120px 100px 1fr 120px 40px;
+      gap: 15px; 
+      padding: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1); 
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+    .entry:hover {
+      background: rgba(255,255,255,0.05);
+      transform: translateX(5px);
     }
     .entry:last-child { border-bottom: none; }
-    .pnl {
-      font-size: 1.4em; font-weight: bold; min-width: 100px;
-      text-align: center; padding: 8px 12px; border-radius: 6px;
+    .pnl-display {
+      font-size: 1.5em; 
+      font-weight: 800; 
+      text-align: center; 
+      padding: 12px 16px; 
+      border-radius: 12px;
+      min-width: 90px;
     }
-    .pnl.profit { background: #d1fae5; color: #065f46; }
-    .pnl.loss { background: #fee2e2; color: #991b1b; }
-    .date { font-weight: 500; min-width: 120px; }
-    .reason { flex: 1; }
-    .delete { background: #ef4444; padding: 8px 12px; border-radius: 6px; }
-    .delete:hover { background: #dc2626; }
+    .pnl-display.profit { 
+      background: linear-gradient(45deg, #10b981, #059669); 
+      color: white;
+      box-shadow: 0 8px 25px rgba(16,185,129,0.4);
+    }
+    .pnl-display.loss { 
+      background: linear-gradient(45deg, #ef4444, #dc2626); 
+      color: white;
+      box-shadow: 0 8px 25px rgba(239,68,68,0.4);
+    }
+    .trade-img {
+      width: 60px; height: 60px;
+      border-radius: 10px; object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.4);
+      cursor: pointer;
+    }
+    .delete { 
+      background: rgba(239,68,68,0.3); 
+      border: none; 
+      padding: 12px; 
+      border-radius: 10px; 
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .delete:hover { background: #dc2626; transform: scale(1.1); }
     
     @media (max-width: 768px) {
-      .form-row, .entry { flex-direction: column; }
-      .stats { flex-direction: column; }
+      .form-grid { grid-template-columns: 1fr; }
+      .entry { 
+        grid-template-columns: 1fr; 
+        text-align: center;
+        gap: 10px;
+      }
+      .stats { grid-template-columns: 1fr; }
+      h1 { font-size: 2em; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📈 Trading P&L Tracker</h1>
+    <h1>⚡ Trading P&L Tracker Pro</h1>
     
     <div class="stats">
       <div class="stat-card">
-        <div>Total Trades</div>
-        <div id="totalTrades" class="total-profit">0</div>
+        <div class="stat-label">Total Trades</div>
+        <div id="totalTrades" class="stat-value">0</div>
       </div>
       <div class="stat-card">
-        <div>Total P&L</div>
-        <div id="totalPnL" class="total-profit profit">₹0</div>
+        <div class="stat-label">Total P&L</div>
+        <div id="totalPnL" class="stat-value profit">₹0</div>
       </div>
       <div class="stat-card">
-        <div>Win Rate</div>
-        <div id="winRate">0%</div>
+        <div class="stat-label">Win Rate</div>
+        <div id="winRate" class="stat-value">0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Best Day</div>
+        <div id="bestDay" class="stat-value profit">₹0</div>
       </div>
     </div>
     
     <div class="chart-container">
-      <canvas id="pnlChart" height="300"></canvas>
+      <canvas id="pnlChart" height="200"></canvas>
     </div>
     
     <div class="entry-form">
-      <h3 style="margin-bottom: 20px; color: #374151;">➕ Add New Trade</h3>
-      <form id="tradeForm" class="form-row">
-        <input id="date" type="date" required>
-        <input id="pnl" type="number" step="0.01" placeholder="P&L (₹)" required>
-        <textarea id="reason" placeholder="Trade reason..." rows="2" required></textarea>
-        <button type="submit">Add Trade</button>
+      <div class="form-title">➕ Add Professional Trade Entry</div>
+      <form id="tradeForm">
+        <div class="form-grid">
+          <div>
+            <label>Date</label>
+            <input id="date" type="date" required>
+          </div>
+          <div class="pnl-selector">
+            <label>Profit/Loss</label>
+            <button type="button" class="pnl-btn profit active" data-type="profit">📈 Profit</button>
+            <button type="button" class="pnl-btn loss" data-type="loss">📉 Loss</button>
+          </div>
+          <div>
+            <label>Amount (₹)</label>
+            <input id="pnl" type="number" step="0.01" placeholder="500" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div style="flex: 1;">
+            <label>Trade Reason</label>
+            <textarea id="reason" placeholder="Setup, entry, exit reason..." rows="3" required></textarea>
+          </div>
+          <div style="width: 150px;">
+            <label>📸 Chart Screenshot</label>
+            <input type="file" id="image" accept="image/*">
+            <img id="imagePreview" class="image-preview" style="display: none;">
+          </div>
+        </div>
+        <button type="submit" class="add-trade">🚀 Add Trade Entry</button>
       </form>
     </div>
     
     <div class="history">
-      <h3>📋 Trade History</h3>
+      <h3>📊 Complete Trade History</h3>
       <div id="historyList"></div>
     </div>
   </div>
 
   <script>
-    let trades = JSON.parse(localStorage.getItem('tradingTrades') || '[]');
+    let trades = JSON.parse(localStorage.getItem('tradingTradesPro') || '[]');
     let chart;
 
-    // Initialize date to today
+    // Initialize
     document.getElementById('date').valueAsDate = new Date();
+    setupPnlSelector();
+    
+    function setupPnlSelector() {
+      document.querySelectorAll('.pnl-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelector('.pnl-btn.active').classList.remove('active');
+          btn.classList.add('active');
+        });
+      });
+      
+      document.getElementById('image').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const preview = document.getElementById('imagePreview');
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
 
     function saveTrades() {
-      localStorage.setItem('tradingTrades', JSON.stringify(trades));
+      localStorage.setItem('tradingTradesPro', JSON.stringify(trades));
       renderAll();
     }
 
@@ -142,17 +341,20 @@
       const totalPnL = trades.reduce((sum, t) => sum + t.pnl, 0);
       const wins = trades.filter(t => t.pnl > 0).length;
       const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+      const bestDay = Math.max(...trades.map(t => t.pnl), 0);
 
       document.getElementById('totalTrades').textContent = totalTrades;
       document.getElementById('totalPnL').textContent = `₹${totalPnL.toLocaleString('en-IN')}`;
-      document.getElementById('totalPnL').className = `total-profit ${totalPnL >= 0 ? 'profit' : 'loss'}`;
+      document.getElementById('totalPnL').className = `stat-value ${totalPnL >= 0 ? 'profit' : 'loss'}`;
       document.getElementById('winRate').textContent = `${winRate}%`;
+      document.getElementById('bestDay').textContent = `₹${bestDay.toLocaleString('en-IN')}`;
+      document.getElementById('bestDay').className = 'stat-value profit';
     }
 
     function renderChart() {
       const ctx = document.getElementById('pnlChart');
-      const labels = trades.map(t => new Date(t.date).toLocaleDateString('en-IN'));
-      const data = trades.map(t => t.pnl);
+      const labels = trades.slice(0, 30).map(t => new Date(t.date).toLocaleDateString('en-IN')).reverse();
+      const data = trades.slice(0, 30).map(t => t.pnl).reverse();
       
       if (chart) chart.destroy();
       
@@ -161,18 +363,29 @@
         data: {
           labels,
           datasets: [{
-            label: 'Daily P&L (₹)',
+            label: 'Daily P&L',
             data,
             borderColor: data.map(d => d >= 0 ? '#10b981' : '#ef4444'),
-            backgroundColor: data.map(d => d >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'),
+            backgroundColor: data.map(d => d >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'),
             tension: 0.4,
-            fill: true
+            fill: true,
+            pointRadius: 6,
+            pointHoverRadius: 8
           }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           scales: {
-            y: { beginAtZero: false }
+            y: { 
+              beginAtZero: false,
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: 'rgba(255,255,255,0.7)' }
+            },
+            x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: 'rgba(255,255,255,0.7)' } }
+          },
+          plugins: {
+            legend: { labels: { color: 'rgba(255,255,255,0.8)' } }
           }
         }
       });
@@ -181,35 +394,47 @@
     function renderHistory() {
       const list = document.getElementById('historyList');
       if (!trades.length) {
-        list.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;">No trades yet. Add your first trade above!</div>';
+        list.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.6);font-size:1.2em;">🎯 No trades yet. Add your first professional entry above!</div>';
         return;
       }
       
       list.innerHTML = trades.map((trade, i) => `
         <div class="entry">
           <div class="date">${new Date(trade.date).toLocaleDateString('en-IN')}</div>
-          <div class="pnl ${trade.pnl >= 0 ? 'profit' : 'loss'}">₹${trade.pnl.toLocaleString('en-IN')}</div>
+          <div class="pnl-display ${trade.pnl > 0 ? 'profit' : 'loss'}">₹${Math.abs(trade.pnl).toLocaleString('en-IN')}</div>
           <div class="reason">${trade.reason}</div>
-          <button class="delete" onclick="deleteTrade(${i})">🗑️ Delete</button>
+          ${trade.image ? `<img src="${trade.image}" class="trade-img" onclick="window.open('${trade.image}')">` : ''}
+          <button class="delete" onclick="deleteTrade(${i})">🗑️</button>
         </div>
       `).join('');
     }
 
     function deleteTrade(index) {
-      trades.splice(index, 1);
-      saveTrades();
+      if (confirm('Delete this trade entry?')) {
+        trades.splice(index, 1);
+        saveTrades();
+      }
     }
 
     document.getElementById('tradeForm').addEventListener('submit', (e) => {
       e.preventDefault();
+      const activeBtn = document.querySelector('.pnl-btn.active');
+      const isProfit = activeBtn.dataset.type === 'profit';
       const trade = {
         date: document.getElementById('date').value,
-        pnl: parseFloat(document.getElementById('pnl').value),
-        reason: document.getElementById('reason').value
+        pnl: parseFloat(document.getElementById('pnl').value) * (isProfit ? 1 : -1),
+        reason: document.getElementById('reason').value,
+        image: document.getElementById('imagePreview').style.display === 'block' ? 
+               document.getElementById('imagePreview').src : null
       };
-      trades.unshift(trade); // Add to beginning for latest first
+      
+      trades.unshift(trade);
       document.getElementById('tradeForm').reset();
       document.getElementById('date').valueAsDate = new Date();
+      document.getElementById('imagePreview').style.display = 'none';
+      document.querySelector('.pnl-btn.profit').classList.add('active');
+      document.querySelector('.pnl-btn.loss').classList.remove('active');
+      
       saveTrades();
     });
 
