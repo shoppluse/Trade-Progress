@@ -82,14 +82,35 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
+    /* FIXED GRID LAYOUT */
     .form-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 15px;
       margin-bottom: 20px;
+      align-items: end;
     }
-    .form-row { display: flex; gap: 15px; align-items: end; }
+
+    .pnl-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pnl-selector-label {
+      font-size: 14px;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+
+    .pnl-btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
     input, textarea, select {
+      width: 100%;
       padding: 15px; 
       border: 2px solid rgba(255,255,255,0.2);
       border-radius: 12px; 
@@ -106,21 +127,26 @@
       box-shadow: 0 0 20px rgba(102,126,234,0.5);
       background: rgba(255,255,255,0.2);
     }
-    .pnl-selector {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-    }
+
     .pnl-btn {
-      padding: 15px; border: 2px solid; border-radius: 12px;
-      font-size: 16px; font-weight: 600; cursor: pointer;
-      transition: all 0.3s ease; position: relative; overflow: hidden;
+      flex: 1;
+      padding: 12px;
+      border: 2px solid;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      background: transparent;
     }
     .pnl-btn.profit { 
-      background: rgba(16,185,129,0.2); 
+      background: rgba(16,185,129,0.15); 
       border-color: #10b981; 
       color: #10b981;
     }
     .pnl-btn.loss { 
-      background: rgba(239,68,68,0.2); 
+      background: rgba(239,68,68,0.15); 
       border-color: #ef4444; 
       color: #ef4444;
     }
@@ -129,6 +155,14 @@
       transform: scale(1.02);
       box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
+
+    .form-row { 
+      display: flex; 
+      gap: 15px; 
+      align-items: flex-start; 
+      margin-bottom: 20px;
+    }
+
     button.add-trade {
       padding: 18px 40px; 
       background: linear-gradient(45deg, #10b981, #059669);
@@ -139,7 +173,7 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.3s ease;
-      grid-column: 1 / -1;
+      width: 100%;
     }
     button.add-trade:hover { 
       transform: translateY(-2px);
@@ -216,9 +250,10 @@
       transition: all 0.3s ease;
     }
     .delete:hover { background: #dc2626; transform: scale(1.1); }
-    
+
     @media (max-width: 768px) {
       .form-grid { grid-template-columns: 1fr; }
+      .form-row { flex-direction: column; align-items: stretch; }
       .entry { 
         grid-template-columns: 1fr; 
         text-align: center;
@@ -264,16 +299,21 @@
             <label>Date</label>
             <input id="date" type="date" required>
           </div>
+
           <div class="pnl-selector">
-            <label>Profit/Loss</label>
-            <button type="button" class="pnl-btn profit active" data-type="profit">📈 Profit</button>
-            <button type="button" class="pnl-btn loss" data-type="loss">📉 Loss</button>
+            <div class="pnl-selector-label">Profit/Loss</div>
+            <div class="pnl-btn-row">
+              <button type="button" class="pnl-btn profit active" data-type="profit">📈 Profit</button>
+              <button type="button" class="pnl-btn loss" data-type="loss">📉 Loss</button>
+            </div>
           </div>
+
           <div>
             <label>Amount (₹)</label>
             <input id="pnl" type="number" step="0.01" placeholder="500" required>
           </div>
         </div>
+
         <div class="form-row">
           <div style="flex: 1;">
             <label>Trade Reason</label>
@@ -285,6 +325,7 @@
             <img id="imagePreview" class="image-preview" style="display: none;">
           </div>
         </div>
+
         <button type="submit" class="add-trade">🚀 Add Trade Entry</button>
       </form>
     </div>
@@ -299,7 +340,6 @@
     let trades = JSON.parse(localStorage.getItem('tradingTradesPro') || '[]');
     let chart;
 
-    // Initialize
     document.getElementById('date').valueAsDate = new Date();
     setupPnlSelector();
     
@@ -321,6 +361,8 @@
             preview.style.display = 'block';
           };
           reader.readAsDataURL(file);
+        } else {
+          preview.style.display = 'none';
         }
       });
     }
@@ -382,7 +424,10 @@
               grid: { color: 'rgba(255,255,255,0.1)' },
               ticks: { color: 'rgba(255,255,255,0.7)' }
             },
-            x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: 'rgba(255,255,255,0.7)' } }
+            x: { 
+              grid: { color: 'rgba(255,255,255,0.1)' }, 
+              ticks: { color: 'rgba(255,255,255,0.7)' } 
+            }
           },
           plugins: {
             legend: { labels: { color: 'rgba(255,255,255,0.8)' } }
@@ -420,9 +465,12 @@
       e.preventDefault();
       const activeBtn = document.querySelector('.pnl-btn.active');
       const isProfit = activeBtn.dataset.type === 'profit';
+      const pnlValue = parseFloat(document.getElementById('pnl').value);
+      if (isNaN(pnlValue)) return;
+
       const trade = {
         date: document.getElementById('date').value,
-        pnl: parseFloat(document.getElementById('pnl').value) * (isProfit ? 1 : -1),
+        pnl: pnlValue * (isProfit ? 1 : -1),
         reason: document.getElementById('reason').value,
         image: document.getElementById('imagePreview').style.display === 'block' ? 
                document.getElementById('imagePreview').src : null
