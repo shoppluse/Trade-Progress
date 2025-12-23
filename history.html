@@ -67,7 +67,7 @@
 
     .history-header {
       display: grid;
-      grid-template-columns: 110px 120px 130px 1fr 90px 70px 60px;
+      grid-template-columns: 110px 120px 130px 1fr 130px 70px 60px;
       gap: 10px;
       padding: 10px 14px;
       margin-bottom: 8px;
@@ -81,7 +81,7 @@
 
     .entry {
       display: grid;
-      grid-template-columns: 110px 120px 130px 1fr 90px 70px 60px;
+      grid-template-columns: 110px 120px 130px 1fr 130px 70px 60px;
       gap: 10px; 
       padding: 10px 14px;
       border-radius: 12px;
@@ -124,16 +124,20 @@
       color: rgba(226,232,240,0.85);
     }
 
+    .trade-files {
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
+    }
     .trade-img {
-      width: 56px; 
-      height: 56px;
-      border-radius: 14px; 
+      width: 40px; 
+      height: 40px;
+      border-radius: 10px; 
       object-fit: cover;
       border: 2px solid rgba(148,163,184,0.7);
       cursor: pointer;
       box-shadow: 0 8px 18px rgba(15,23,42,0.8);
     }
-
     .trade-img:hover { transform: scale(1.03); }
 
     .btn-chip { 
@@ -152,7 +156,6 @@
 
     .btn-chip.edit { border-color: #facc15; }
     .btn-chip.delete { border-color: #f97373; }
-
     .btn-chip:hover { transform: scale(1.05); }
 
     @media (max-width: 768px) {
@@ -163,20 +166,19 @@
           "date pnlBefore"
           "pnlAfter pnlAfter"
           "reason reason"
-          "image edit"
-          "image delete";
+          "files edit"
+          "files delete";
         row-gap: 6px;
       }
       .entry .date { grid-area: date; text-align: left; }
       .entry .pnl-before { grid-area: pnlBefore; justify-self: end; }
       .entry .pnl-after { grid-area: pnlAfter; justify-self: stretch; }
       .entry .reason { grid-area: reason; }
-      .entry .trade-img { grid-area: image; justify-self: start; }
+      .entry .trade-files { grid-area: files; justify-self: start; }
       .entry .btn-edit { grid-area: edit; justify-self: end; }
       .entry .btn-delete { grid-area: delete; justify-self: end; }
     }
 
-    /* image modal */
     #imgModal {
       display:none;position:fixed;inset:0;z-index:9999;
       background:rgba(0,0,0,0.85);
@@ -205,16 +207,14 @@
     </div>
 
     <div class="history">
-      <div class="summary-bar" id="summaryBar">
-        <!-- filled by JS -->
-      </div>
+      <div class="summary-bar" id="summaryBar"></div>
 
       <div class="history-header">
         <div>Date</div>
         <div>P&L Before Tax</div>
         <div>P&L After Tax</div>
         <div>Reason</div>
-        <div>Image</div>
+        <div>Images</div>
         <div>Edit</div>
         <div>Delete</div>
       </div>
@@ -223,7 +223,6 @@
     </div>
   </div>
 
-  <!-- image modal -->
   <div id="imgModal">
     <div style="position:relative;max-width:90%;max-height:90%;">
       <img id="imgModalInner" src="">
@@ -264,17 +263,27 @@
       list.innerHTML = trades.map((t,i)=>{
         const pnl = t.pnl;
         const after = t.afterTax ?? t.pnl;
+
+        const filesHtml = (t.files && t.files.length)
+          ? `<div class="trade-files">
+              ${t.files.map(f => f.type && f.type.startsWith('image/')
+                ? `<img src="${f.data}" class="trade-img" onclick="openImageModal('${f.data}')">`
+                : ''
+              ).join('')}
+            </div>`
+          : (t.image
+              ? `<div class="trade-files">
+                   <img src="${t.image}" class="trade-img" onclick="openImageModal('${t.image}')">
+                 </div>`
+              : '<span style="font-size:12px;color:rgba(148,163,184,0.9);">No image</span>');
+
         return `
           <div class="entry">
             <div class="date">${new Date(t.date).toLocaleDateString('en-IN')}</div>
             <div class="pnl-display ${pnl>0?'profit':'loss'} pnl-before">₹${Math.abs(pnl).toLocaleString('en-IN')}</div>
             <div class="pnl-display ${after>0?'profit':'loss'} pnl-after">₹${Math.abs(after).toLocaleString('en-IN')}</div>
             <div class="reason">${t.reason}</div>
-            ${
-              t.image
-                ? `<img src="${t.image}" class="trade-img" onclick="openImageModal('${t.image}')">`
-                : '<span style="font-size:12px;color:rgba(148,163,184,0.9);">No image</span>'
-            }
+            ${filesHtml}
             <button class="btn-chip edit btn-edit" onclick="editAfterTax(${i})">✏️ Edit</button>
             <button class="btn-chip delete btn-delete" onclick="deleteTrade(${i})">🗑️</button>
           </div>
