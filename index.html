@@ -202,7 +202,7 @@
       background:rgba(15,23,42,0.8);
     }
 
-    /* NOTES SECTION */
+    /* NOTES (shared styling for overlay forms/cards) */
     .notes-card {
       margin-top: 24px;
       background: rgba(255,255,255,0.1);
@@ -212,7 +212,6 @@
       border: 1px solid rgba(255,255,255,0.2);
       box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     }
-
     .notes-title {
       font-size: 1.4em;
       margin-bottom: 16px;
@@ -220,27 +219,17 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-
     .notes-form {
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
       margin-bottom: 18px;
     }
-
     .notes-form-main {
       flex: 1 1 260px;
     }
-
-    .notes-form textarea {
-      width: 100%;
-      min-height: 80px;
-    }
-
-    .notes-sidebar {
-      width: 180px;
-    }
-
+    .notes-form textarea { width: 100%; min-height: 80px; }
+    .notes-sidebar { width: 180px; }
     .notes-image-preview {
       width: 120px;
       height: 80px;
@@ -250,7 +239,6 @@
       margin-top: 8px;
       display: none;
     }
-
     .notes-save-btn {
       margin-top: 10px;
       padding: 10px 18px;
@@ -262,13 +250,11 @@
       cursor: pointer;
       font-size: 14px;
     }
-
     .notes-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 12px;
     }
-
     .note-card {
       padding: 12px 14px;
       border-radius: 16px;
@@ -279,18 +265,13 @@
       flex-direction: column;
       gap: 6px;
     }
-
     .note-meta {
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: rgba(148,163,184,0.9);
     }
-
-    .note-text {
-      color: rgba(226,232,240,0.95);
-    }
-
+    .note-text { color: rgba(226,232,240,0.95); }
     .note-img {
       width: 100%;
       max-height: 140px;
@@ -300,14 +281,12 @@
       margin-top: 4px;
       cursor: pointer;
     }
-
     .note-actions {
       display: flex;
       justify-content: flex-end;
       gap: 6px;
       margin-top: 4px;
     }
-
     .note-btn {
       padding: 4px 10px;
       border-radius: 999px;
@@ -343,7 +322,6 @@
         <div class="stat-label">Total P&L (After Tax)</div>
         <div id="totalPnLAfter" class="stat-value profit">₹0</div>
       </div>
-      <!-- Notes button card -->
       <div class="stat-card" id="openNotesBtn" style="cursor:pointer;">
         <div class="stat-label">My Notes</div>
         <div class="stat-value" style="font-size:1.4em;">Tap to open</div>
@@ -398,32 +376,12 @@
       </form>
     </div>
 
-    <!-- link to separate history page -->
     <div class="history-link-wrapper">
       <a href="history.html" class="history-link">📋 View Full History</a>
     </div>
-
-    <!-- NOTES SECTION (inline) -->
-    <div class="notes-card">
-      <div class="notes-title">🧠 My Notes &amp; Lessons</div>
-      <form id="notesForm" class="notes-form">
-        <div class="notes-form-main">
-          <label style="font-size:13px;display:block;margin-bottom:4px;">Note</label>
-          <textarea id="noteText" placeholder="What did you learn from today’s trades? Patterns, mistakes, mindset, setups…"></textarea>
-        </div>
-        <div class="notes-sidebar">
-          <label style="font-size:13px;display:block;margin-bottom:4px;">📸 Attach Image (optional)</label>
-          <input type="file" id="noteImage" accept="image/*">
-          <img id="noteImagePreview" class="notes-image-preview">
-          <button type="submit" class="notes-save-btn">💾 Save Note</button>
-        </div>
-      </form>
-
-      <div id="notesList" class="notes-list"></div>
-    </div>
   </div>
 
-  <!-- FULLSCREEN NOTES OVERLAY -->
+  <!-- FULLSCREEN NOTES OVERLAY ONLY -->
   <div id="notesOverlay" style="
     display:none;position:fixed;inset:0;z-index:9999;
     background:rgba(3,7,18,0.96);padding:16px;overflow-y:auto;
@@ -460,9 +418,9 @@
     let chart;
 
     document.getElementById('date').valueAsDate = new Date();
-    setupPnlSelector();
+    setupInputs();
     
-    function setupPnlSelector() {
+    function setupInputs() {
       document.querySelectorAll('.pnl-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelector('.pnl-btn.active').classList.remove('active');
@@ -484,21 +442,6 @@
           preview.style.display = 'none';
         }
       });
-
-      document.getElementById('noteImage').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        const preview = document.getElementById('noteImagePreview');
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            preview.src = ev.target.result;
-            preview.style.display = 'block';
-          };
-          reader.readAsDataURL(file);
-        } else {
-          preview.style.display = 'none';
-        }
-      });
     }
 
     function saveTrades() {
@@ -508,7 +451,6 @@
 
     function saveNotes() {
       localStorage.setItem('tradingNotes', JSON.stringify(notes));
-      renderNotes();
       renderNotesOverlay();
     }
 
@@ -531,7 +473,6 @@
       document.getElementById('totalPnLAfter').textContent = `₹${totalAfter.toLocaleString('en-IN')}`;
       document.getElementById('totalPnLAfter').className = `stat-value ${totalAfter >= 0 ? 'profit' : 'loss'}`;
 
-      // winRate currently not shown; kept for future use if needed
       console.log('Win rate:', winRate + '%');
     }
 
@@ -613,49 +554,6 @@
       saveTrades();
     });
 
-    document.getElementById('notesForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = document.getElementById('noteText').value.trim();
-      if (!text) {
-        alert('Write something in the note.');
-        return;
-      }
-      const imgEl = document.getElementById('noteImagePreview');
-      const note = {
-        text,
-        image: imgEl.style.display === 'block' ? imgEl.src : null,
-        createdAt: new Date().toISOString()
-      };
-      notes.unshift(note);
-      document.getElementById('notesForm').reset();
-      imgEl.style.display = 'none';
-      saveNotes();
-    });
-
-    function renderNotes() {
-      const list = document.getElementById('notesList');
-      if (!notes.length) {
-        list.innerHTML = '<div style="font-size:13px;color:rgba(148,163,184,0.9);padding:6px 0;">No notes yet. After market hours, write what you learned and attach key screenshots.</div>';
-        return;
-      }
-      list.innerHTML = notes.map((n, i) => `
-        <div class="note-card">
-          <div class="note-meta">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
-          <div class="note-text">${n.text}</div>
-          ${n.image ? `<img src="${n.image}" class="note-img" onclick="openNoteImage('${n.image}')">` : ''}
-          <div class="note-actions">
-            <button class="note-btn" onclick="deleteNote(${i})">Delete</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function deleteNote(index) {
-      if (!confirm('Delete this note?')) return;
-      notes.splice(index, 1);
-      saveNotes();
-    }
-
     function openNoteImage(src) {
       const win = window.open();
       if (win) {
@@ -663,7 +561,7 @@
       }
     }
 
-    // FULLSCREEN NOTES OVERLAY LOGIC
+    // FULLSCREEN NOTES OVERLAY
     const notesOverlay = document.getElementById('notesOverlay');
     const openNotesBtn = document.getElementById('openNotesBtn');
     const closeNotesOverlay = document.getElementById('closeNotesOverlay');
@@ -729,8 +627,14 @@
       `).join('');
     }
 
+    function deleteNote(index) {
+      if (!confirm('Delete this note?')) return;
+      notes.splice(index, 1);
+      saveNotes();
+    }
+
     renderAll();
-    renderNotes();
+    renderNotesOverlay();
   </script>
 </body>
 </html>
