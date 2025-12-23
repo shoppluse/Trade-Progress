@@ -343,9 +343,10 @@
         <div class="stat-label">Total P&L (After Tax)</div>
         <div id="totalPnLAfter" class="stat-value profit">₹0</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Win Rate</div>
-        <div id="winRate" class="stat-value">0%</div>
+      <!-- Notes button card -->
+      <div class="stat-card" id="openNotesBtn" style="cursor:pointer;">
+        <div class="stat-label">My Notes</div>
+        <div class="stat-value" style="font-size:1.4em;">Tap to open</div>
       </div>
     </div>
     
@@ -402,7 +403,7 @@
       <a href="history.html" class="history-link">📋 View Full History</a>
     </div>
 
-    <!-- NOTES SECTION -->
+    <!-- NOTES SECTION (inline) -->
     <div class="notes-card">
       <div class="notes-title">🧠 My Notes &amp; Lessons</div>
       <form id="notesForm" class="notes-form">
@@ -419,6 +420,37 @@
       </form>
 
       <div id="notesList" class="notes-list"></div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN NOTES OVERLAY -->
+  <div id="notesOverlay" style="
+    display:none;position:fixed;inset:0;z-index:9999;
+    background:rgba(3,7,18,0.96);padding:16px;overflow-y:auto;
+  ">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:1.4em;font-weight:700;">🧠 My Notes &amp; Lessons</div>
+        <button id="closeNotesOverlay" style="
+          padding:6px 12px;border-radius:999px;border:none;
+          background:#ef4444;color:white;font-weight:600;cursor:pointer;
+        ">Close</button>
+      </div>
+      <div class="notes-card" style="margin-top:0;">
+        <form id="notesFormOverlay" class="notes-form">
+          <div class="notes-form-main">
+            <label style="font-size:13px;display:block;margin-bottom:4px;">Note</label>
+            <textarea id="noteTextOverlay" placeholder="What did you learn from today’s trades?"></textarea>
+          </div>
+          <div class="notes-sidebar">
+            <label style="font-size:13px;display:block;margin-bottom:4px;">📸 Attach Image (optional)</label>
+            <input type="file" id="noteImageOverlay" accept="image/*">
+            <img id="noteImagePreviewOverlay" class="notes-image-preview">
+            <button type="submit" class="notes-save-btn">💾 Save Note</button>
+          </div>
+        </form>
+        <div id="notesListOverlay" class="notes-list"></div>
+      </div>
     </div>
   </div>
 
@@ -477,6 +509,7 @@
     function saveNotes() {
       localStorage.setItem('tradingNotes', JSON.stringify(notes));
       renderNotes();
+      renderNotesOverlay();
     }
 
     function renderAll() {
@@ -498,7 +531,8 @@
       document.getElementById('totalPnLAfter').textContent = `₹${totalAfter.toLocaleString('en-IN')}`;
       document.getElementById('totalPnLAfter').className = `stat-value ${totalAfter >= 0 ? 'profit' : 'loss'}`;
 
-      document.getElementById('winRate').textContent = `${winRate}%`;
+      // winRate currently not shown; kept for future use if needed
+      console.log('Win rate:', winRate + '%');
     }
 
     function renderChart() {
@@ -627,6 +661,72 @@
       if (win) {
         win.document.write('<img src="' + src + '" style="max-width:100%;height:auto;">');
       }
+    }
+
+    // FULLSCREEN NOTES OVERLAY LOGIC
+    const notesOverlay = document.getElementById('notesOverlay');
+    const openNotesBtn = document.getElementById('openNotesBtn');
+    const closeNotesOverlay = document.getElementById('closeNotesOverlay');
+
+    openNotesBtn.addEventListener('click', () => {
+      notesOverlay.style.display = 'block';
+      renderNotesOverlay();
+    });
+
+    closeNotesOverlay.addEventListener('click', () => {
+      notesOverlay.style.display = 'none';
+    });
+
+    document.getElementById('noteImageOverlay').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      const preview = document.getElementById('noteImagePreviewOverlay');
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          preview.src = ev.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.style.display = 'none';
+      }
+    });
+
+    document.getElementById('notesFormOverlay').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = document.getElementById('noteTextOverlay').value.trim();
+      if (!text) {
+        alert('Write something in the note.');
+        return;
+      }
+      const imgEl = document.getElementById('noteImagePreviewOverlay');
+      const note = {
+        text,
+        image: imgEl.style.display === 'block' ? imgEl.src : null,
+        createdAt: new Date().toISOString()
+      };
+      notes.unshift(note);
+      document.getElementById('notesFormOverlay').reset();
+      imgEl.style.display = 'none';
+      saveNotes();
+    });
+
+    function renderNotesOverlay() {
+      const list = document.getElementById('notesListOverlay');
+      if (!notes.length) {
+        list.innerHTML = '<div style="font-size:13px;color:rgba(148,163,184,0.9);padding:6px 0;">No notes yet. After market hours, write what you learned and attach key screenshots.</div>';
+        return;
+      }
+      list.innerHTML = notes.map((n, i) => `
+        <div class="note-card">
+          <div class="note-meta">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
+          <div class="note-text">${n.text}</div>
+          ${n.image ? `<img src="${n.image}" class="note-img" onclick="openNoteImage('${n.image}')">` : ''}
+          <div class="note-actions">
+            <button class="note-btn" onclick="deleteNote(${i})">Delete</button>
+          </div>
+        </div>
+      `).join('');
     }
 
     renderAll();
