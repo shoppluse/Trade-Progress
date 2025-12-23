@@ -185,8 +185,13 @@
       border: 3px solid rgba(255,255,255,0.3);
       margin-top: 10px;
     }
+    #imagePreviewContainer {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:6px;
+    }
 
-    /* view history button */
     .history-link-wrapper {
       display:flex;
       justify-content:flex-end;
@@ -202,7 +207,7 @@
       background:rgba(15,23,42,0.8);
     }
 
-    /* NOTES (shared styling for overlay forms/cards) */
+    /* notes shared styles */
     .notes-card {
       margin-top: 24px;
       background: rgba(255,255,255,0.1);
@@ -225,11 +230,9 @@
       gap: 16px;
       margin-bottom: 18px;
     }
-    .notes-form-main {
-      flex: 1 1 260px;
-    }
+    .notes-form-main { flex: 1 1 260px; }
     .notes-form textarea { width: 100%; min-height: 80px; }
-    .notes-sidebar { width: 180px; }
+    .notes-sidebar { width: 220px; }
     .notes-image-preview {
       width: 120px;
       height: 80px;
@@ -365,10 +368,10 @@
             <label>Trade Reason</label>
             <textarea id="reason" placeholder="Setup, entry, exit reason..." rows="3" required></textarea>
           </div>
-          <div style="width: 150px;">
-            <label>📸 Chart Screenshot</label>
-            <input type="file" id="image" accept="image/*">
-            <img id="imagePreview" class="image-preview" style="display: none;">
+          <div style="width: 200px;">
+            <label>📸 Chart Screenshots (multiple)</label>
+            <input type="file" id="image" accept="image/*" multiple>
+            <div id="imagePreviewContainer"></div>
           </div>
         </div>
 
@@ -381,7 +384,7 @@
     </div>
   </div>
 
-  <!-- FULLSCREEN NOTES OVERLAY ONLY -->
+  <!-- FULLSCREEN NOTES OVERLAY -->
   <div id="notesOverlay" style="
     display:none;position:fixed;inset:0;z-index:9999;
     background:rgba(3,7,18,0.96);padding:16px;overflow-y:auto;
@@ -401,9 +404,9 @@
             <textarea id="noteTextOverlay" placeholder="What did you learn from today’s trades?"></textarea>
           </div>
           <div class="notes-sidebar">
-            <label style="font-size:13px;display:block;margin-bottom:4px;">📸 Attach Image (optional)</label>
-            <input type="file" id="noteImageOverlay" accept="image/*">
-            <img id="noteImagePreviewOverlay" class="notes-image-preview">
+            <label style="font-size:13px;display:block;margin-bottom:4px;">📎 Attach Images / PDFs</label>
+            <input type="file" id="noteImageOverlay" accept="image/*,application/pdf" multiple>
+            <div id="noteFilesPreviewOverlay" class="notes-list" style="margin-top:8px;"></div>
             <button type="submit" class="notes-save-btn">💾 Save Note</button>
           </div>
         </form>
@@ -429,18 +432,33 @@
       });
       
       document.getElementById('image').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        const preview = document.getElementById('imagePreview');
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            preview.src = ev.target.result;
-            preview.style.display = 'block';
-          };
-          reader.readAsDataURL(file);
-        } else {
-          preview.style.display = 'none';
-        }
+        const container = document.getElementById('imagePreviewContainer');
+        container.innerHTML = '';
+        Array.from(e.target.files).forEach(file => {
+          const img = document.createElement('img');
+          img.className = 'image-preview';
+          img.src = URL.createObjectURL(file);
+          img.onload = () => URL.revokeObjectURL(img.src);
+          container.appendChild(img);
+        });
+      });
+    }
+
+    function readFilesAsData(files, callback) {
+      const result = [];
+      let remaining = files.length;
+      if (!remaining) return callback(result);
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          result.push({
+            name: file.name,
+            type: file.type,
+            data: ev.target.result
+          });
+          if (!--remaining) callback(result);
+        };
+        reader.readAsDataURL(file);
       });
     }
 
@@ -519,12 +537,6 @@
       });
     }
 
-    function deleteTrade(index) {
-      if (!confirm("Delete this trade entry?")) return;
-      trades.splice(index, 1);
-      saveTrades();
-    }
-
     document.getElementById('tradeForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const activeBtn = document.querySelector('.pnl-btn.active');
@@ -534,34 +546,35 @@
       if (isNaN(pnlValue) || isNaN(afterValue)) return;
 
       const sign = isProfit ? 1 : -1;
+      const files = document.getElementById('image').files;
 
-      const trade = {
-        date: document.getElementById('date').value,
-        pnl: pnlValue * sign,
-        afterTax: afterValue * sign,
-        reason: document.getElementById('reason').value,
-        image: document.getElementById('imagePreview').style.display === 'block' ? 
-               document.getElementById('imagePreview').src : null
-      };
-      
-      trades.unshift(trade);
-      document.getElementById('tradeForm').reset();
-      document.getElementById('date').valueAsDate = new Date();
-      document.getElementById('imagePreview').style.display = 'none';
-      document.querySelector('.pnl-btn.profit').classList.add('active');
-      document.querySelector('.pnl-btn.loss').classList.remove('active');
-      
-      saveTrades();
+      readFilesAsData(files, (fileArray) => {
+        const trade = {
+          date: document.getElementById('date').value,
+          pnl: pnlValue * sign,
+          afterTax: afterValue * sign,
+          reason: document.getElementById('reason').value,
+          files: fileArray,
+          image: null   // keep old field for compatibility
+        };
+        trades.unshift(trade);
+        document.getElementById('tradeForm').reset();
+        document.getElementById('date').valueAsDate = new Date();
+        document.getElementById('imagePreviewContainer').innerHTML = '';
+        document.querySelector('.pnl-btn.profit').classList.add('active');
+        document.querySelector('.pnl-btn.loss').classList.remove('active');
+        saveTrades();
+      });
     });
 
     function openNoteImage(src) {
       const win = window.open();
       if (win) {
-        win.document.write('<img src="' + src + '" style="max-width:100%;height:auto;">');
+        win.document.write('<iframe src="' + src + '" style="width:100%;height:100%;border:none;"></iframe>');
       }
     }
 
-    // FULLSCREEN NOTES OVERLAY
+    // NOTES OVERLAY
     const notesOverlay = document.getElementById('notesOverlay');
     const openNotesBtn = document.getElementById('openNotesBtn');
     const closeNotesOverlay = document.getElementById('closeNotesOverlay');
@@ -576,18 +589,24 @@
     });
 
     document.getElementById('noteImageOverlay').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      const preview = document.getElementById('noteImagePreviewOverlay');
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          preview.src = ev.target.result;
-          preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      } else {
-        preview.style.display = 'none';
-      }
+      const container = document.getElementById('noteFilesPreviewOverlay');
+      container.innerHTML = '';
+      Array.from(e.target.files).forEach(file => {
+        const div = document.createElement('div');
+        div.className = 'note-card';
+        if (file.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.className = 'note-img';
+          img.src = URL.createObjectURL(file);
+          img.onload = () => URL.revokeObjectURL(img.src);
+          div.appendChild(img);
+        } else if (file.type === 'application/pdf') {
+          div.textContent = '📄 ' + file.name;
+        } else {
+          div.textContent = '📎 ' + file.name;
+        }
+        container.appendChild(div);
+      });
     });
 
     document.getElementById('notesFormOverlay').addEventListener('submit', (e) => {
@@ -597,34 +616,47 @@
         alert('Write something in the note.');
         return;
       }
-      const imgEl = document.getElementById('noteImagePreviewOverlay');
-      const note = {
-        text,
-        image: imgEl.style.display === 'block' ? imgEl.src : null,
-        createdAt: new Date().toISOString()
-      };
-      notes.unshift(note);
-      document.getElementById('notesFormOverlay').reset();
-      imgEl.style.display = 'none';
-      saveNotes();
+      const files = document.getElementById('noteImageOverlay').files;
+
+      readFilesAsData(files, (fileArray) => {
+        const note = {
+          text,
+          files: fileArray,
+          createdAt: new Date().toISOString()
+        };
+        notes.unshift(note);
+        document.getElementById('notesFormOverlay').reset();
+        document.getElementById('noteFilesPreviewOverlay').innerHTML = '';
+        saveNotes();
+      });
     });
 
     function renderNotesOverlay() {
       const list = document.getElementById('notesListOverlay');
       if (!notes.length) {
-        list.innerHTML = '<div style="font-size:13px;color:rgba(148,163,184,0.9);padding:6px 0;">No notes yet. After market hours, write what you learned and attach key screenshots.</div>';
+        list.innerHTML = '<div style="font-size:13px;color:rgba(148,163,184,0.9);padding:6px 0;">No notes yet. After market hours, write what you learned and attach files.</div>';
         return;
       }
-      list.innerHTML = notes.map((n, i) => `
-        <div class="note-card">
-          <div class="note-meta">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
-          <div class="note-text">${n.text}</div>
-          ${n.image ? `<img src="${n.image}" class="note-img" onclick="openNoteImage('${n.image}')">` : ''}
-          <div class="note-actions">
-            <button class="note-btn" onclick="deleteNote(${i})">Delete</button>
+      list.innerHTML = notes.map((n, i) => {
+        const filesHtml = (n.files || []).map(f => {
+          if (f.type.startsWith('image/')) {
+            return `<img src="${f.data}" class="note-img" onclick="openNoteImage('${f.data}')">`;
+          } else if (f.type === 'application/pdf') {
+            return `<button class="note-btn" onclick="openNoteImage('${f.data}')">Open PDF: ${f.name}</button>`;
+          }
+          return `<span class="note-meta">File: ${f.name}</span>`;
+        }).join('');
+        return `
+          <div class="note-card">
+            <div class="note-meta">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
+            <div class="note-text">${n.text}</div>
+            ${filesHtml}
+            <div class="note-actions">
+              <button class="note-btn" onclick="deleteNote(${i})">Delete</button>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function deleteNote(index) {
