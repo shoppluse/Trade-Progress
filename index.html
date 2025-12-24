@@ -63,6 +63,7 @@
       margin-bottom: 25px;
       border: 1px solid rgba(255,255,255,0.1);
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      height: 420px; /* bigger graph on laptop */
     }
     
     .entry-form {
@@ -323,6 +324,7 @@
 
       .chart-container {
         padding: 14px;
+        height: auto; /* override fixed height on mobile */
       }
       #pnlChart {
         height: 260px !important;
@@ -785,7 +787,7 @@
             label: 'Daily P&L (After Tax)',
             data,
             borderColor: '#10b981',
-            backgroundColor: 'transparent',   // no shadow
+            backgroundColor: 'transparent',   // no area/shadow
             tension: 0.4,
             fill: false,                      // line only
             spanGaps: false,
