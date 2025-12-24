@@ -1,1 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trading P&L Tracker Pro</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #e2e8f0;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { 
+      text-align: center; 
+      background: linear-gradient(45deg, #10b981, #f59e0b, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 30px; 
+      font-size: 3em; 
+      font-weight: 800;
+      text-shadow: 0 0 30px rgba(255,255,255,0.3);
+    }
+    
+    .stats { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px; 
+      margin-bottom: 25px; 
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      padding: 25px; 
+      border-radius: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .stat-label { font-size: 0.9em; opacity: 0.8; margin-bottom: 10px; }
+    .stat-value { 
+      font-size: 2.2em; 
+      font-weight: 800; 
+      margin-bottom: 5px;
+    }
+    .profit { color: #10b981 !important; text-shadow: 0 0 20px rgba(16,185,129,0.5); }
+    .loss { color: #ef4444 !important; text-shadow: 0 0 20px rgba(239,68,68,0.5); }
+    
+    .chart-container { 
+      background: rgba(255,255,255,0.08); 
+      backdrop-filter: blur(20px);
+      padding: 20px; 
+      border-radius: 20px; 
+      margin-bottom: 25px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    
+    .entry-form {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      padding: 30px; 
+      border-radius: 20px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .form-title { 
+      margin-bottom: 25px; 
+      font-size: 1.5em; 
+      text-align: center;
+      background: linear-gradient(45deg, #10b981, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+      align-items: end;
+    }
+
+    .pnl-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pnl-selector-label {
+      font-size: 14px;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+
+    .pnl-btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 15px; 
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 12px; 
+      font-size: 16px; 
+      background: rgba(255,255,255,0.1);
+      color: white;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.6); }
+    input:focus, textarea:focus, select:focus { 
+      outline: none; 
+      border-color: #667eea; 
+      box-shadow: 0 0 20px rgba(102,126,234,0.5);
+      background: rgba(255,255,255,0.2);
+    }
+
+    .pnl-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      background: transparent;
+    }
+    .pnl-btn.profit { 
+      background: rgba(16,185,129,0.15); 
+      border-color: #10b981; 
+      color: #10b981;
+    }
+    .pnl-btn.loss { 
+      background: rgba(239,68,68,0.15); 
+      border-color: #ef4444; 
+      color: #ef4444;
+    }
+    .pnl-btn.active { 
+      background: rgba(255,255,255,0.3) !important;
+      transform: scale(1.02);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .form-row { 
+      display: flex; 
+      gap: 15px; 
+      align-items: flex-start; 
+      margin-bottom: 20px;
+    }
+
+    button.add-trade {
+      padding: 18px 40px; 
+      background: linear-gradient(45deg, #10b981, #059669);
+      color: white; 
+      border: none; 
+      border-radius: 12px;
+      font-size: 18px; 
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+    button.add-trade:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(16,185,129,0.4);
+    }
+    
+    .image-preview {
+      width: 100px; height: 100px;
+      border-radius: 12px; object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.3);
+      margin-top: 10px;
+    }
+    #imagePreviewContainer {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:6px;
+    }
+
+    .history-link-wrapper {
+      display:flex;
+      justify-content:flex-end;
+      margin: 8px 0 0;
+    }
+    .history-link {
+      padding:8px 14px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.4);
+      font-size:13px;
+      color:#e5e7eb;
+      text-decoration:none;
+      background:rgba(15,23,42,0.8);
+    }
+
+    /* timeframe buttons */
+    .tf-btn {
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.6);
+      background:rgba(15,23,42,0.9);
+      color:#e5e7eb;
+      font-size:11px;
+      cursor:pointer;
+    }
+    .tf-btn.active {
+      background:linear-gradient(45deg,#10b981,#22c55e);
+      border-color:#22c55e;
+    }
+
+    /* notes shared styles (overlay) */
+    .notes-card {
+      margin-top: 24px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      padding: 24px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .notes-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .notes-form-main { flex: 1 1 260px; }
+    .notes-form textarea { width: 100%; min-height: 80px; }
+    .notes-sidebar { width: 220px; }
+    .notes-save-btn {
+      margin-top: 10px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(45deg, #38bdf8, #6366f1);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .notes-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .note-card {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(148,163,184,0.5);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .note-meta {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(148,163,184,0.9);
+    }
+    .note-text { color: rgba(226,232,240,0.95); }
+    .note-img {
+      width: 100%;
+      max-height: 140px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 2px solid rgba(148,163,184,0.7);
+      margin-top: 4px;
+      cursor: pointer;
+    }
+    .note-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .note-btn {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.7);
+      background: transparent;
+      color: #e5e7eb;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-row { flex-direction: column; align-items: stretch; }
+      .stats { grid-template-columns: 1fr; }
+      h1 { font-size: 2em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Trading P&L Tracker Pro</h1>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Trades</div>
+        <div id="totalTrades" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total P&L (Before Tax)</div>
+        <div id="totalPnL" class="stat-value profit">₹0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total P&L (After Tax)</div>
+        <div id="totalPnLAfter" class="stat-value profit">₹0</div>
+      </div>
+      <div class="stat-card" id="openNotesBtn" style="cursor:pointer;">
+        <div class="stat-label">My Notes</div>
+        <div class="stat-value" style="font-size:1.4em;">Tap to open</div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:14px;opacity:0.8;">Daily P&L (After Tax)</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="tf-btn" data-range="all">All time</button>
+          <button class="tf-btn active" data-range="month">1M</button>
+          <button class="tf-btn" data-range="year">1Y</button>
+          <button class="tf-btn" data-range="week">1W</button>
+          <button class="tf-btn" data-range="custom">Custom</button>
+        </div>
+      </div>
+      <div id="customRangeControls" style="display:none;margin-bottom:8px;font-size:12px;gap:8px;align-items:center;">
+        <span style="opacity:0.7;">From</span>
+        <input type="date" id="customFrom" style="padding:6px 8px;font-size:12px;">
+        <span style="opacity:0.7;">To</span>
+        <input type="date" id="customTo" style="padding:6px 8px;font-size:12px;">
+        <button id="applyCustomRange" style="padding:6px 10px;font-size:12px;border-radius:999px;border:none;background:#6366f1;color:white;cursor:pointer;">Apply</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <div style="min-width:600px;">
+          <canvas id="pnlChart" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div class="entry-form">
+      <div class="form-title">➕ Add Professional Trade Entry</div>
+      <form id="tradeForm">
+        <div class="form-grid">
+          <div>
+            <label>Date</label>
+            <input id="date" type="date" required>
+          </div>
+
+          <div class="pnl-selector">
+            <div class="pnl-selector-label">Profit/Loss</div>
+            <div class="pnl-btn-row">
+              <button type="button" class="pnl-btn profit active" data-type="profit">📈 Profit</button>
+              <button type="button" class="pnl-btn loss" data-type="loss">📉 Loss</button>
+            </div>
+          </div>
+
+          <div>
+            <label>P&L Before Tax (₹)</label>
+            <input id="pnl" type="number" step="0.01" placeholder="500" required>
+          </div>
+
+          <div>
+            <label>P&L After Tax (₹)</label>
+            <input id="afterTax" type="number" step="0.01" placeholder="450" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div style="flex: 1;">
+            <label>Trade Reason</label>
+            <textarea id="reason" placeholder="Setup, entry, exit reason..." rows="3" required></textarea>
+          </div>
+          <div style="width: 200px;">
+            <label>📸 Chart Screenshots (multiple)</label>
+            <input type="file" id="image" accept="image/*" multiple>
+            <div id="imagePreviewContainer"></div>
+          </div>
+        </div>
+
+        <button type="submit" class="add-trade">🚀 Add Trade Entry</button>
+      </form>
+    </div>
+
+    <div class="history-link-wrapper">
+      <a href="history.html" class="history-link">📋 View Full History</a>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN NOTES OVERLAY -->
+  <div id="notesOverlay" style="
+    display:none;position:fixed;inset:0;z-index:9999;
+    background:rgba(3,7,18,0.96);padding:16px;overflow-y:auto;
+  ">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:1.4em;font-weight:700;">🧠 My Notes &amp; Lessons</div>
+        <button id="closeNotesOverlay" style="
+          padding:6px 12px;border-radius:999px;border:none;
+          background:#ef4444;color:white;font-weight:600;cursor:pointer;
+        ">Close</button>
+      </div>
+      <div class="notes-card" style="margin-top:0;">
+        <form id="notesFormOverlay" class="notes-form">
+          <div class="notes-form-main">
+            <label style="font-size:13px;display:block;margin-bottom:4px;">Note</label>
+            <textarea id="noteTextOverlay" placeholder="What did you learn from today’s trades?"></textarea>
+          </div>
+          <div class="notes-sidebar">
+            <label style="font-size:13px;display:block;margin-bottom:4px;">📎 Attach Images / PDFs</label>
+            <input type="file" id="noteImageOverlay" accept="image/*,application/pdf" multiple>
+            <div id="noteFilesPreviewOverlay" class="notes-list" style="margin-top:8px;"></div>
+            <button type="submit" class="notes-save-btn">💾 Save Note</button>
+          </div>
+        </form>
+        <div id="notesListOverlay" class="notes-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let trades = JSON.parse(localStorage.getItem('tradingTradesPro') || '[]');
+    let notes = JSON.parse(localStorage.getItem('tradingNotes') || '[]');
+    let chart;
+    // default monthly
+    let currentRange = 'month';
+    let customRange = { from: null, to: null };
+
+    document.getElementById('date').valueAsDate = new Date();
+    setupInputs();
+    
+    function setupInputs() {
+      document.querySelectorAll('.pnl-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelector('.pnl-btn.active').classList.remove('active');
+          btn.classList.add('active');
+        });
+      });
+      
+      document.getElementById('image').addEventListener('change', (e) => {
+        const container = document.getElementById('imagePreviewContainer');
+        container.innerHTML = '';
+        Array.from(e.target.files).forEach(file => {
+          const img = document.createElement('img');
+          img.className = 'image-preview';
+          img.src = URL.createObjectURL(file);
+          img.onload = () => URL.revokeObjectURL(img.src);
+          container.appendChild(img);
+        });
+      });
+
+      // timeframe buttons
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentRange = btn.dataset.range;
+          const customControls = document.getElementById('customRangeControls');
+          customControls.style.display = currentRange === 'custom' ? 'flex' : 'none';
+          if (currentRange !== 'custom') {
+            renderChart();
+          }
+        });
+      });
+
+      document.getElementById('applyCustomRange').addEventListener('click', () => {
+        const from = document.getElementById('customFrom').value;
+        const to = document.getElementById('customTo').value;
+        if (!from || !to) {
+          alert('Select both From and To dates.');
+          return;
+        }
+        customRange = { from, to };
+        renderChart();
+      });
+    }
+
+    function readFilesAsData(files, callback) {
+      const result = [];
+      let remaining = files.length;
+      if (!remaining) return callback(result);
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          result.push({
+            name: file.name,
+            type: file.type,
+            data: ev.target.result
+          });
+          if (!--remaining) callback(result);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function saveTrades() {
+      localStorage.setItem('tradingTradesPro', JSON.stringify(trades));
+      renderAll();
+    }
+
+    function saveNotes() {
+      localStorage.setItem('tradingNotes', JSON.stringify(notes));
+      renderNotesOverlay();
+    }
+
+    function renderAll() {
+      renderStats();
+      renderChart();
+    }
+
+    function renderStats() {
+      const totalTrades = trades.length;
+      const totalPnL = trades.reduce((sum, t) => sum + t.pnl, 0);
+      const totalAfter = trades.reduce((sum, t) => sum + (t.afterTax ?? t.pnl), 0);
+      const wins = trades.filter(t => t.pnl > 0).length;
+      const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+
+      document.getElementById('totalTrades').textContent = totalTrades;
+      document.getElementById('totalPnL').textContent = `₹${totalPnL.toLocaleString('en-IN')}`;
+      document.getElementById('totalPnL').className = `stat-value ${totalPnL >= 0 ? 'profit' : 'loss'}`;
+
+      document.getElementById('totalPnLAfter').textContent = `₹${totalAfter.toLocaleString('en-IN')}`;
+      document.getElementById('totalPnLAfter').className = `stat-value ${totalAfter >= 0 ? 'profit' : 'loss'}`;
+
+      console.log('Win rate:', winRate + '%');
+    }
+
+    function getDaysInMonth(date) {
+      return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    }
+
+    function getFilteredTradesForChart() {
+      if (!trades.length) return [];
+      const sorted = [...trades].sort((a,b)=> new Date(a.date) - new Date(b.date));
+
+      if (currentRange !== 'month') {
+        if (currentRange === 'all') return sorted;
+
+        const now = new Date();
+        let fromDate = null;
+
+        if (currentRange === 'week') {
+          fromDate = new Date(now);
+          fromDate.setDate(now.getDate() - 7);
+        } else if (currentRange === 'year') {
+          fromDate = new Date(now);
+          fromDate.setFullYear(now.getFullYear() - 1);
+        } else if (currentRange === 'custom' && customRange.from && customRange.to) {
+          const from = new Date(customRange.from);
+          const to = new Date(customRange.to);
+          return sorted.filter(t => {
+            const d = new Date(t.date);
+            return d >= from && d <= to;
+          });
+        }
+
+        if (!fromDate) return sorted;
+        return sorted.filter(t => new Date(t.date) >= fromDate);
+      }
+
+      // monthly: full calendar month of latest trade
+      const latest = new Date(sorted[sorted.length - 1].date);
+      const year = latest.getFullYear();
+      const month = latest.getMonth();
+      const days = getDaysInMonth(latest);
+
+      const map = {};
+      sorted.forEach(t => {
+        const d = new Date(t.date);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          const key = d.toISOString().slice(0,10);
+          map[key] = t;
+        }
+      });
+
+      const result = [];
+      for (let day = 1; day <= days; day++) {
+        const d = new Date(year, month, day);
+        const key = d.toISOString().slice(0,10);
+        const base = map[key];
+        if (base) {
+          result.push(base);
+        } else {
+          result.push({
+            date: key,
+            pnl: 0,
+            afterTax: 0
+          });
+        }
+      }
+      return result;
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('pnlChart');
+      const dataTrades = getFilteredTradesForChart();
+      const labels = dataTrades.map(t => {
+        const d = new Date(t.date);
+        return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+      });
+      const data = dataTrades.map(t => t.afterTax ?? t.pnl);
+      
+      if (chart) chart.destroy();
+      
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Daily P&L (After Tax)',
+            data,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16,185,129,0.2)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          spanGaps: true,
+          scales: {
+            y: { 
+              beginAtZero: false,
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: 'rgba(255,255,255,0.7)' }
+            },
+            x: { 
+              grid: { color: 'rgba(255,255,255,0.08)' }, 
+              ticks: { color: 'rgba(255,255,255,0.7)' }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: 'rgba(255,255,255,0.8)' } },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const d = new Date(dataTrades[items[0].dataIndex].date);
+                  return d.toLocaleDateString('en-IN');
+                },
+                label: (ctx) => '₹' + Number(ctx.parsed.y).toLocaleString('en-IN')
+              }
+            }
+          }
+        }
+      });
+    }
+
+    document.getElementById('tradeForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const activeBtn = document.querySelector('.pnl-btn.active');
+      const isProfit = activeBtn.dataset.type === 'profit';
+      const pnlValue = parseFloat(document.getElementById('pnl').value);
+      const afterValue = parseFloat(document.getElementById('afterTax').value);
+      if (isNaN(pnlValue) || isNaN(afterValue)) return;
+
+      const sign = isProfit ? 1 : -1;
+      const files = document.getElementById('image').files;
+
+      readFilesAsData(files, (fileArray) => {
+        const trade = {
+          date: document.getElementById('date').value,
+          pnl: pnlValue * sign,
+          afterTax: afterValue * sign,
+          reason: document.getElementById('reason').value,
+          files: fileArray,
+          image: null
+        };
+        trades.unshift(trade);
+        document.getElementById('tradeForm').reset();
+        document.getElementById('date').valueAsDate = new Date();
+        document.getElementById('imagePreviewContainer').innerHTML = '';
+        document.querySelector('.pnl-btn.profit').classList.add('active');
+        document.querySelector('.pnl-btn.loss').classList.remove('active');
+        saveTrades();
+      });
+    });
+
+    function openNoteImage(src) {
+      const win = window.open();
+      if (win) {
+        win.document.write('<iframe src="' + src + '" style="width:100%;height:100%;border:none;"></iframe>');
+      }
+    }
+
+    // NOTES OVERLAY
+    const notesOverlay = document.getElementById('notesOverlay');
+    const openNotesBtn = document.getElementById('openNotesBtn');
+    const closeNotesOverlay = document.getElementById('closeNotesOverlay');
+
+    openNotesBtn.addEventListener('click', () => {
+      notesOverlay.style.display = 'block';
+      renderNotesOverlay();
+    });
+
+    closeNotesOverlay.addEventListener('click', () => {
+      notesOverlay.style.display = 'none';
+    });
+
+    document.getElementById('noteImageOverlay').addEventListener('change', (e) => {
+      const container = document.getElementById('noteFilesPreviewOverlay');
+      container.innerHTML = '';
+      Array.from(e.target.files).forEach(file => {
+        const div = document.createElement('div');
+        div.className = 'note-card';
+        if (file.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.className = 'note-img';
+          img.src = URL.createObjectURL(file);
+          img.onload = () => URL.revokeObjectURL(img.src);
+          div.appendChild(img);
+        } else if (file.type === 'application/pdf') {
+          div.textContent = '📄 ' + file.name;
+        } else {
+          div.textContent = '📎 ' + file.name;
+        }
+        container.appendChild(div);
+      });
+    });
+
+    document.getElementById('notesFormOverlay').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = document.getElementById('noteTextOverlay').value.trim();
+      if (!text) {
+        alert('Write something in the note.');
+        return;
+      }
+      const files = document.getElementById('noteImageOverlay').files;
+
+      readFilesAsData(files, (fileArray) => {
+        const note = {
+          text,
+          files: fileArray,
+          createdAt: new Date().toISOString()
+        };
+        notes.unshift(note);
+        document.getElementById('notesFormOverlay').reset();
+        document.getElementById('noteFilesPreviewOverlay').innerHTML = '';
+        saveNotes();
+      });
+    });
+
+    function renderNotesOverlay() {
+      const list = document.getElementById('notesListOverlay');
+      if (!notes.length) {
+        list.innerHTML = '<div style="font-size:13px;color:rgba(148,163,184,0.9);padding:6px 0;">No notes yet. After market hours, write what you learned and attach files.</div>';
+        return;
+      }
+      list.innerHTML = notes.map((n, i) => {
+        const filesHtml = (n.files || []).map(f => {
+          if (f.type.startsWith('image/')) {
+            return `<img src="${f.data}" class="note-img" onclick="openNoteImage('${f.data}')">`;
+          } else if (f.type === 'application/pdf') {
+            return `<button class="note-btn" onclick="openNoteImage('${f.data}')">Open PDF: ${f.name}</button>`;
+          }
+          return `<span class="note-meta">File: ${f.name}</span>`;
+        }).join('');
+        return `
+          <div class="note-card">
+            <div class="note-meta">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
+            <div class="note-text">${n.text}</div>
+            ${filesHtml}
+            <div class="note-actions">
+              <button class="note-btn" onclick="deleteNote(${i})">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function deleteNote(index) {
+      if (!confirm('Delete this note?')) return;
+      notes.splice(index, 1);
+      saveNotes();
+    }
+
+    renderAll();
+    renderNotesOverlay();
+  </script>
+</body>
+</html>
 
