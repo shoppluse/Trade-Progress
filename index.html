@@ -297,7 +297,7 @@
       cursor: pointer;
     }
 
-    /* Mobile tweaks only - desktop graph stays big */
+    /* Mobile tweaks only */
     @media (max-width: 768px) {
       body {
         padding: 12px;
@@ -805,6 +805,8 @@
             x: { 
               grid: { color: 'rgba(255,255,255,0.08)' }, 
               ticks: { 
+                // we draw custom labels in plugin
+                callback: () => '',
                 color: 'rgba(255,255,255,0.7)'
               }
             }
@@ -854,7 +856,7 @@
 
               const pnl = trade.afterTax;
 
-              let circleColor = '#6b7280';
+              let circleColor = '#6b7280'; // today default grey
               if (d.getTime() !== today.getTime()) {
                 if (pnl > 0) circleColor = '#10b981';
                 else if (pnl < 0) circleColor = '#ef4444';
