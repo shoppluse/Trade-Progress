@@ -297,11 +297,62 @@
       cursor: pointer;
     }
 
+    /* Mobile tweaks */
     @media (max-width: 768px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .form-row { flex-direction: column; align-items: stretch; }
-      .stats { grid-template-columns: 1fr; }
-      h1 { font-size: 2em; }
+      body {
+        padding: 12px;
+      }
+      .container {
+        max-width: 100%;
+      }
+      h1 { 
+        font-size: 1.8em; 
+        margin-bottom: 18px;
+      }
+      .stats { 
+        grid-template-columns: 1fr; 
+        gap: 12px;
+      }
+      .stat-card {
+        padding: 16px;
+      }
+      .stat-value {
+        font-size: 1.7em;
+      }
+      .chart-container {
+        padding: 14px;
+      }
+      #pnlChart {
+        height: 260px !important;
+      }
+      .form-grid { 
+        grid-template-columns: 1fr; 
+        gap: 10px;
+      }
+      .form-row { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px;
+      }
+      .entry-form {
+        padding: 18px;
+      }
+      .notes-card {
+        padding: 18px;
+      }
+      .notes-sidebar {
+        width: 100%;
+      }
+      .notes-form {
+        flex-direction: column;
+      }
+      .history-link-wrapper {
+        justify-content: center;
+      }
+      .history-link {
+        width: 100%;
+        text-align: center;
+      }
     }
   </style>
 </head>
@@ -351,7 +402,7 @@
       </div>
       <div style="overflow-x:auto;">
         <div style="min-width:600px;">
-          <canvas id="pnlChart" height="220"></canvas>
+          <canvas id="pnlChart"></canvas>
         </div>
       </div>
     </div>
@@ -543,8 +594,8 @@
 
     function getWeekBounds(date) {
       const d = new Date(date);
-      const day = d.getDay(); // 0 Sun - 6 Sat
-      const diffToMonday = (day + 6) % 7; // Monday=0
+      const day = d.getDay();
+      const diffToMonday = (day + 6) % 7;
       const monday = new Date(d);
       monday.setDate(d.getDate() - diffToMonday);
       const sunday = new Date(monday);
@@ -594,7 +645,7 @@
           new Date(todayY, todayM, 1).toLocaleDateString('en-IN', { month:'long', year:'numeric' });
       }
       else if (currentRange === 'week') {
-        const { monday, sunday } = getWeekBounds(now); // week of today [web:225][web:275]
+        const { monday, sunday } = getWeekBounds(now);
         const weekTrades = sorted.filter(t => {
           const d = new Date(t.date);
           return d >= monday && d <= sunday;
@@ -676,10 +727,6 @@
             const d = new Date(t.date);
             return d >= from && d <= to;
           }).map(t => ({ date: t.date, afterTax: t.afterTax ?? t.pnl }));
-        } else if (currentRange === 'week') {
-          // already handled above, but guard
-        } else if (currentRange === 'year') {
-          // guard
         }
       }
 
