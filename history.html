@@ -20,6 +20,7 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 18px;
+      gap: 10px;
     }
     .title {
       font-size: 1.6em;
@@ -39,6 +40,7 @@
       color: #e5e7eb;
       text-decoration: none;
       background: rgba(15,23,42,0.9);
+      white-space: nowrap;
     }
 
     .history {
@@ -159,24 +161,80 @@
     .btn-chip:hover { transform: scale(1.05); }
 
     @media (max-width: 768px) {
-      .history-header { display: none; }
+      body {
+        padding: 12px;
+      }
+      .container {
+        max-width: 100%;
+      }
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .title {
+        font-size: 1.3em;
+      }
+      .back-btn {
+        width: 100%;
+        text-align: center;
+      }
+      .history {
+        padding: 14px;
+      }
+      .summary-bar {
+        flex-direction: column;
+      }
+      .summary-chip {
+        width: 100%;
+      }
+
+      .history-header { 
+        display: none; 
+      }
+
       .entry {
         grid-template-columns: 1fr 1fr;
         grid-template-areas:
           "date pnlBefore"
           "pnlAfter pnlAfter"
           "reason reason"
-          "files edit"
-          "files delete";
+          "files files"
+          "edit delete";
         row-gap: 6px;
       }
-      .entry .date { grid-area: date; text-align: left; }
-      .entry .pnl-before { grid-area: pnlBefore; justify-self: end; }
-      .entry .pnl-after { grid-area: pnlAfter; justify-self: stretch; }
-      .entry .reason { grid-area: reason; }
-      .entry .trade-files { grid-area: files; justify-self: start; }
-      .entry .btn-edit { grid-area: edit; justify-self: end; }
-      .entry .btn-delete { grid-area: delete; justify-self: end; }
+      .entry .date { 
+        grid-area: date; 
+        text-align: left; 
+        font-size: 13px;
+      }
+      .entry .pnl-before { 
+        grid-area: pnlBefore; 
+        justify-self: end; 
+      }
+      .entry .pnl-after { 
+        grid-area: pnlAfter; 
+        justify-self: stretch; 
+        margin-top: 2px;
+      }
+      .entry .reason { 
+        grid-area: reason; 
+        font-size: 12px;
+      }
+      .entry .trade-files { 
+        grid-area: files; 
+        justify-self: flex-start; 
+      }
+      .entry .btn-edit { 
+        grid-area: edit; 
+        justify-self: flex-start; 
+        width: 100%;
+      }
+      .entry .btn-delete { 
+        grid-area: delete; 
+        justify-self: flex-start; 
+        width: 100%;
+      }
     }
 
     #imgModal {
