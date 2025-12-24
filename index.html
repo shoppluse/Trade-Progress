@@ -53,7 +53,7 @@
       margin-bottom: 5px;
     }
     .profit { color: #10b981 !important; text-shadow: 0 0 20px rgba(16,185,129,0.5); }
-    .loss { color: #ef4444 !important; text-shadow: 0 0 20px rgba(239,68,68,0.5); }
+    .loss  { color: #ef4444 !important; text-shadow: 0 0 20px rgba(239,68,68,0.5); }
     
     .chart-container { 
       background: rgba(255,255,255,0.08); 
@@ -330,7 +330,10 @@
     
     <div class="chart-container">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
-        <div style="font-size:14px;opacity:0.8;">Daily P&L (After Tax)</div>
+        <div>
+          <div style="font-size:14px;opacity:0.8;">Daily P&L (After Tax)</div>
+          <div id="monthLabel" style="font-size:12px;opacity:0.7;margin-top:2px;"></div>
+        </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="tf-btn" data-range="all">All time</button>
           <button class="tf-btn active" data-range="month">1M</button>
@@ -435,11 +438,10 @@
 
   <script>
     let trades = JSON.parse(localStorage.getItem('tradingTradesPro') || '[]');
-    let notes = JSON.parse(localStorage.getItem('tradingNotes') || '[]');
+    let notes  = JSON.parse(localStorage.getItem('tradingNotes') || '[]');
     let chart;
-    // default month view
     let currentRange = 'month';
-    let customRange = { from: null, to: null };
+    let customRange  = { from: null, to: null };
 
     document.getElementById('date').valueAsDate = new Date();
     setupInputs();
@@ -477,7 +479,7 @@
 
       document.getElementById('applyCustomRange').addEventListener('click', () => {
         const from = document.getElementById('customFrom').value;
-        const to = document.getElementById('customTo').value;
+        const to   = document.getElementById('customTo').value;
         if (!from || !to) {
           alert('Select both From and To dates.');
           return;
@@ -522,40 +524,62 @@
 
     function renderStats() {
       const totalTrades = trades.length;
-      const totalPnL = trades.reduce((sum, t) => sum + t.pnl, 0);
-      const totalAfter = trades.reduce((sum, t) => sum + (t.afterTax ?? t.pnl), 0);
-      const wins = trades.filter(t => t.pnl > 0).length;
-      const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+      const totalPnL    = trades.reduce((s, t) => s + t.pnl, 0);
+      const totalAfter  = trades.reduce((s, t) => s + (t.afterTax ?? t.pnl), 0);
+      const wins        = trades.filter(t => t.pnl > 0).length;
+      const winRate     = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
 
       document.getElementById('totalTrades').textContent = totalTrades;
-      document.getElementById('totalPnL').textContent = `₹${totalPnL.toLocaleString('en-IN')}`;
-      document.getElementById('totalPnL').className = `stat-value ${totalPnL >= 0 ? 'profit' : 'loss'}`;
+      document.getElementById('totalPnL').textContent   = `₹${totalPnL.toLocaleString('en-IN')}`;
+      document.getElementById('totalPnL').className     = `stat-value ${totalPnL >= 0 ? 'profit' : 'loss'}`;
 
       document.getElementById('totalPnLAfter').textContent = `₹${totalAfter.toLocaleString('en-IN')}`;
-      document.getElementById('totalPnLAfter').className = `stat-value ${totalAfter >= 0 ? 'profit' : 'loss'}`;
+      document.getElementById('totalPnLAfter').className   = `stat-value ${totalAfter >= 0 ? 'profit' : 'loss'}`;
 
       console.log('Win rate:', winRate + '%');
     }
 
+    function getDaysInMonth(date) {
+      return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    }
+
     function getFilteredTradesForChart() {
       if (!trades.length) return [];
-
       const sorted = [...trades].sort((a,b)=> new Date(a.date) - new Date(b.date));
 
       if (currentRange === 'month') {
-        // take only trades in the current month that already happened (no future dates)
-        const now = new Date();
-        const year = now.getFullYear();
+        const now   = new Date();
+        const year  = now.getFullYear();
         const month = now.getMonth();
-        const today = now.getDate();
+        const days  = getDaysInMonth(now);
 
-        const monthTrades = sorted.filter(t => {
+        // index existing trades by YYYY-MM-DD
+        const map = {};
+        sorted.forEach(t => {
           const d = new Date(t.date);
-          return d.getFullYear() === year && d.getMonth() === month && d.getDate() <= today;
+          if (d.getFullYear() === year && d.getMonth() === month) {
+            const key = d.toISOString().slice(0,10);
+            map[key] = t;
+          }
         });
 
-        // if no trades in this month, show nothing (chart will say no data)
-        return monthTrades;
+        // build full calendar month: trade value where available, 0 for missing/future days
+        const result = [];
+        for (let day = 1; day <= days; day++) {
+          const d   = new Date(year, month, day);
+          const key = d.toISOString().slice(0,10);
+          const base = map[key];
+          if (base) {
+            result.push(base);
+          } else {
+            result.push({
+              date: key,
+              pnl: 0,
+              afterTax: 0
+            });
+          }
+        }
+        return result;
       }
 
       if (currentRange === 'all') return sorted;
@@ -571,7 +595,7 @@
         fromDate.setFullYear(now.getFullYear() - 1);
       } else if (currentRange === 'custom' && customRange.from && customRange.to) {
         const from = new Date(customRange.from);
-        const to = new Date(customRange.to);
+        const to   = new Date(customRange.to);
         return sorted.filter(t => {
           const d = new Date(t.date);
           return d >= from && d <= to;
@@ -583,7 +607,7 @@
     }
 
     function renderChart() {
-      const ctx = document.getElementById('pnlChart');
+      const ctx        = document.getElementById('pnlChart');
       const dataTrades = getFilteredTradesForChart();
 
       if (!dataTrades.length) {
@@ -593,12 +617,22 @@
         temp.fillStyle = 'rgba(148,163,184,0.8)';
         temp.font = '14px Segoe UI';
         temp.fillText('No trades in selected period.', 20, 40);
+        document.getElementById('monthLabel').textContent = '';
         return;
+      }
+
+      // update month label when in month mode
+      if (currentRange === 'month') {
+        const now = new Date();
+        document.getElementById('monthLabel').textContent =
+          now.toLocaleDateString('en-IN', { month:'long', year:'numeric' });
+      } else {
+        document.getElementById('monthLabel').textContent = '';
       }
 
       const labels = dataTrades.map(t => {
         const d = new Date(t.date);
-        return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+        return d.getDate().toString().padStart(2,'0'); // 01,02,...31
       });
       const data = dataTrades.map(t => t.afterTax ?? t.pnl);
       
@@ -652,13 +686,13 @@
 
     document.getElementById('tradeForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const activeBtn = document.querySelector('.pnl-btn.active');
-      const isProfit = activeBtn.dataset.type === 'profit';
-      const pnlValue = parseFloat(document.getElementById('pnl').value);
+      const activeBtn  = document.querySelector('.pnl-btn.active');
+      const isProfit   = activeBtn.dataset.type === 'profit';
+      const pnlValue   = parseFloat(document.getElementById('pnl').value);
       const afterValue = parseFloat(document.getElementById('afterTax').value);
       if (isNaN(pnlValue) || isNaN(afterValue)) return;
 
-      const sign = isProfit ? 1 : -1;
+      const sign  = isProfit ? 1 : -1;
       const files = document.getElementById('image').files;
 
       readFilesAsData(files, (fileArray) => {
@@ -687,8 +721,8 @@
       }
     }
 
-    const notesOverlay = document.getElementById('notesOverlay');
-    const openNotesBtn = document.getElementById('openNotesBtn');
+    const notesOverlay    = document.getElementById('notesOverlay');
+    const openNotesBtn    = document.getElementById('openNotesBtn');
     const closeNotesOverlay = document.getElementById('closeNotesOverlay');
 
     openNotesBtn.addEventListener('click', () => {
