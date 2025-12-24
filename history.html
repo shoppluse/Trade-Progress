@@ -160,6 +160,7 @@
     .btn-chip.delete { border-color: #f97373; }
     .btn-chip:hover { transform: scale(1.05); }
 
+    /* Mobile tweaks only */
     @media (max-width: 768px) {
       body {
         padding: 12px;
@@ -182,8 +183,13 @@
       .history {
         padding: 14px;
       }
+
+      /* summary chips: 2 per row */
       .summary-bar {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 16px;
       }
       .summary-chip {
         width: 100%;
