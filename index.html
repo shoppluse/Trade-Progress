@@ -539,10 +539,6 @@
       console.log('Win rate:', winRate + '%');
     }
 
-    function getDaysInMonth(date) {
-      return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    }
-
     function getFilteredTradesForChart() {
       if (!trades.length) return [];
       const sorted = [...trades].sort((a,b)=> new Date(a.date) - new Date(b.date));
@@ -551,36 +547,23 @@
         const now   = new Date();
         const year  = now.getFullYear();
         const month = now.getMonth();
-        const days  = getDaysInMonth(now);
 
-        // index existing trades by YYYY-MM-DD
-        const map = {};
-        sorted.forEach(t => {
+        const monthTrades = sorted.filter(t => {
           const d = new Date(t.date);
-          if (d.getFullYear() === year && d.getMonth() === month) {
-            const key = d.toISOString().slice(0,10);
-            map[key] = t;
-          }
+          return d.getFullYear() === year && d.getMonth() === month;
         });
 
-        // build full calendar month: trade value where available, 0 for missing/future days
-        const result = [];
-        for (let day = 1; day <= days; day++) {
-          const d   = new Date(year, month, day);
-          const key = d.toISOString().slice(0,10);
-          const base = map[key];
-          if (base) {
-            result.push(base);
-          } else {
-            result.push({
-              date: key,
-              pnl: 0,
-              afterTax: 0
-            });
-          }
-        }
-        return result;
+        if (!monthTrades.length) return [];
+
+        // update month label
+        document.getElementById('monthLabel').textContent =
+          new Date(year, month, 1).toLocaleDateString('en-IN', { month:'long', year:'numeric' });
+
+        return monthTrades;
       }
+
+      // other ranges
+      document.getElementById('monthLabel').textContent = '';
 
       if (currentRange === 'all') return sorted;
 
@@ -617,22 +600,12 @@
         temp.fillStyle = 'rgba(148,163,184,0.8)';
         temp.font = '14px Segoe UI';
         temp.fillText('No trades in selected period.', 20, 40);
-        document.getElementById('monthLabel').textContent = '';
         return;
-      }
-
-      // update month label when in month mode
-      if (currentRange === 'month') {
-        const now = new Date();
-        document.getElementById('monthLabel').textContent =
-          now.toLocaleDateString('en-IN', { month:'long', year:'numeric' });
-      } else {
-        document.getElementById('monthLabel').textContent = '';
       }
 
       const labels = dataTrades.map(t => {
         const d = new Date(t.date);
-        return d.getDate().toString().padStart(2,'0'); // 01,02,...31
+        return d.getDate().toString().padStart(2,'0'); // 01,02,...
       });
       const data = dataTrades.map(t => t.afterTax ?? t.pnl);
       
@@ -721,8 +694,8 @@
       }
     }
 
-    const notesOverlay    = document.getElementById('notesOverlay');
-    const openNotesBtn    = document.getElementById('openNotesBtn');
+    const notesOverlay      = document.getElementById('notesOverlay');
+    const openNotesBtn      = document.getElementById('openNotesBtn');
     const closeNotesOverlay = document.getElementById('closeNotesOverlay');
 
     openNotesBtn.addEventListener('click', () => {
