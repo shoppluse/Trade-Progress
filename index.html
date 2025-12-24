@@ -297,7 +297,7 @@
       cursor: pointer;
     }
 
-    /* Mobile tweaks only - DESKTOP GRAPH STAYS BIG */
+    /* Mobile tweaks only - desktop graph stays big */
     @media (max-width: 768px) {
       body {
         padding: 12px;
@@ -310,7 +310,6 @@
         margin-bottom: 18px;
       }
 
-      /* stats: 2 cards per row */
       .stats { 
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
@@ -325,12 +324,10 @@
       .chart-container {
         padding: 14px;
       }
-      /* ONLY limit chart height on mobile */
       #pnlChart {
         height: 260px !important;
       }
 
-      /* form: 3 columns so before/after tax stay in same row */
       .form-grid { 
         grid-template-columns: repeat(3, minmax(0, 1fr)); 
         gap: 10px;
@@ -409,7 +406,6 @@
       </div>
       <div style="overflow-x:auto;">
         <div style="min-width:600px;">
-          <!-- NO fixed height = BIG on laptop/desktop -->
           <canvas id="pnlChart"></canvas>
         </div>
       </div>
@@ -743,13 +739,13 @@
     }
 
     function renderChart() {
-      const ctx = document.getElementById('pnlChart');
+      const ctxCanvas = document.getElementById('pnlChart');
       const dataTrades = getFilteredTradesForChart();
 
       if (!dataTrades.length) {
         if (chart) chart.destroy();
-        const temp = ctx.getContext('2d');
-        temp.clearRect(0,0,ctx.width,ctx.height);
+        const temp = ctxCanvas.getContext('2d');
+        temp.clearRect(0,0,ctxCanvas.width,ctxCanvas.height);
         temp.fillStyle = 'rgba(148,163,184,0.8)';
         temp.font = '14px Segoe UI';
         temp.fillText('No trades in selected period.', 20, 40);
@@ -775,26 +771,13 @@
       }
 
       const data = dataTrades.map(t => t.afterTax);
-      const today = new Date().toDateString();
-
-      // Color each point based on today/profit/loss
-      const pointBackgroundColors = dataTrades.map(trade => {
-        if (!trade.afterTax) return 'transparent'; // No trade = no dot
-        
-        const tradeDate = new Date(trade.date).toDateString();
-        
-        if (tradeDate === today) {
-          return '#6b7280'; // Grey circle for TODAY (25th)
-        } else if (trade.afterTax > 0) {
-          return '#10b981'; // Green circle for PROFIT days
-        } else {
-          return '#ef4444'; // Red circle for LOSS days
-        }
-      });
 
       if (chart) chart.destroy();
-      
-      chart = new Chart(ctx, {
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      chart = new Chart(ctxCanvas, {
         type: 'line',
         data: {
           labels,
@@ -807,19 +790,12 @@
             fill: true,
             spanGaps: false,
             pointRadius: 0,
-            pointHoverRadius: 0,
-            pointBackgroundColor: pointBackgroundColors,
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 3
+            pointHoverRadius: 0
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'index'
-          },
           scales: {
             y: { 
               beginAtZero: false,
@@ -828,7 +804,9 @@
             },
             x: { 
               grid: { color: 'rgba(255,255,255,0.08)' }, 
-              ticks: { color: 'rgba(255,255,255,0.7)' }
+              ticks: { 
+                color: 'rgba(255,255,255,0.7)'
+              }
             }
           },
           plugins: {
@@ -849,36 +827,58 @@
           }
         },
         plugins: [{
-          afterDatasetsDraw(chart) {
-            const ctx = chart.ctx;
-            const meta = chart.getDatasetMeta(0);
-            const todayIndex = dataTrades.findIndex(t => 
-              t.afterTax !== null && new Date(t.date).toDateString() === today
-            );
+          afterDraw(chartInstance) {
+            const ctx = chartInstance.ctx;
+            const xScale = chartInstance.scales.x;
+            const ticks = xScale.ticks;
 
-            meta.data.forEach((element, index) => {
-              if (dataTrades[index].afterTax === null) return; // Skip empty days
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const defaultFontSize = xScale.options.ticks.font?.size || 12;
+            ctx.font = defaultFontSize + 'px Segoe UI';
 
-              const x = element.x;
-              const y = element.y;
-              const radius = index === todayIndex ? 8 : 6; // Bigger for today
-              const color = pointBackgroundColors[index];
-              
-              // White stroke circle
-              ctx.save();
+            ticks.forEach((tick, index) => {
+              const label = xScale.getLabelForValue(tick.value);
+              const x = xScale.getPixelForTick(index);
+              const y = xScale.bottom + 14;
+
+              const trade = dataTrades[index];
+              if (!trade) return;
+
+              const d = new Date(trade.date);
+              d.setHours(0,0,0,0);
+
+              const isFuture = d > today;
+              if (isFuture) return;
+
+              const pnl = trade.afterTax;
+
+              let circleColor = '#6b7280';
+              if (d.getTime() !== today.getTime()) {
+                if (pnl > 0) circleColor = '#10b981';
+                else if (pnl < 0) circleColor = '#ef4444';
+                else circleColor = '#6b7280';
+              }
+
+              const radius = 13;
+
               ctx.beginPath();
-              ctx.arc(x, y, radius + 2, 0, 2 * Math.PI);
+              ctx.arc(x, y, radius, 0, 2 * Math.PI);
               ctx.strokeStyle = '#ffffff';
               ctx.lineWidth = 3;
               ctx.stroke();
 
-              // Colored fill circle
               ctx.beginPath();
-              ctx.arc(x, y, radius, 0, 2 * Math.PI);
-              ctx.fillStyle = color;
+              ctx.arc(x, y, radius - 3, 0, 2 * Math.PI);
+              ctx.fillStyle = circleColor;
               ctx.fill();
-              ctx.restore();
+
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(label, x, y);
             });
+
+            ctx.restore();
           }
         }]
       });
