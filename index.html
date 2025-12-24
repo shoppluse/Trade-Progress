@@ -297,7 +297,7 @@
       cursor: pointer;
     }
 
-    /* Mobile tweaks only */
+    /* Mobile tweaks only - DESKTOP GRAPH STAYS BIG */
     @media (max-width: 768px) {
       body {
         padding: 12px;
@@ -325,7 +325,7 @@
       .chart-container {
         padding: 14px;
       }
-      /* limit chart height only on mobile */
+      /* ONLY limit chart height on mobile */
       #pnlChart {
         height: 260px !important;
       }
@@ -409,7 +409,7 @@
       </div>
       <div style="overflow-x:auto;">
         <div style="min-width:600px;">
-          <!-- no fixed height attribute: desktop chart stays big -->
+          <!-- NO fixed height = BIG on laptop/desktop -->
           <canvas id="pnlChart"></canvas>
         </div>
       </div>
@@ -471,7 +471,7 @@
   ">
     <div style="max-width:1200px;margin:0 auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-size:1.4em;font-weight:700;">🧠 My Notes &amp; Lessons</div>
+        <div style="font-size:1.4em;font-weight:700;">🧠 My Notes & Lessons</div>
         <button id="closeNotesOverlay" style="
           padding:6px 12px;border-radius:999px;border:none;
           background:#ef4444;color:white;font-weight:600;cursor:pointer;
@@ -481,7 +481,7 @@
         <form id="notesFormOverlay" class="notes-form">
           <div class="notes-form-main">
             <label style="font-size:13px;display:block;margin-bottom:4px;">Note</label>
-            <textarea id="noteTextOverlay" placeholder="What did you learn from today’s trades?"></textarea>
+            <textarea id="noteTextOverlay" placeholder="What did you learn from today's trades?"></textarea>
           </div>
           <div class="notes-sidebar">
             <label style="font-size:13px;display:block;margin-bottom:4px;">📎 Attach Images / PDFs</label>
@@ -743,7 +743,7 @@
     }
 
     function renderChart() {
-      const ctx        = document.getElementById('pnlChart');
+      const ctx = document.getElementById('pnlChart');
       const dataTrades = getFilteredTradesForChart();
 
       if (!dataTrades.length) {
@@ -775,6 +775,22 @@
       }
 
       const data = dataTrades.map(t => t.afterTax);
+      const today = new Date().toDateString();
+
+      // Color each point based on today/profit/loss
+      const pointBackgroundColors = dataTrades.map(trade => {
+        if (!trade.afterTax) return 'transparent'; // No trade = no dot
+        
+        const tradeDate = new Date(trade.date).toDateString();
+        
+        if (tradeDate === today) {
+          return '#6b7280'; // Grey circle for TODAY (25th)
+        } else if (trade.afterTax > 0) {
+          return '#10b981'; // Green circle for PROFIT days
+        } else {
+          return '#ef4444'; // Red circle for LOSS days
+        }
+      });
 
       if (chart) chart.destroy();
       
@@ -790,13 +806,20 @@
             tension: 0.4,
             fill: true,
             spanGaps: false,
-            pointRadius: 4,
-            pointHoverRadius: 6
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            pointBackgroundColor: pointBackgroundColors,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 3
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
           scales: {
             y: { 
               beginAtZero: false,
@@ -824,7 +847,40 @@
               }
             }
           }
-        }
+        },
+        plugins: [{
+          afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            const todayIndex = dataTrades.findIndex(t => 
+              t.afterTax !== null && new Date(t.date).toDateString() === today
+            );
+
+            meta.data.forEach((element, index) => {
+              if (dataTrades[index].afterTax === null) return; // Skip empty days
+
+              const x = element.x;
+              const y = element.y;
+              const radius = index === todayIndex ? 8 : 6; // Bigger for today
+              const color = pointBackgroundColors[index];
+              
+              // White stroke circle
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(x, y, radius + 2, 0, 2 * Math.PI);
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+
+              // Colored fill circle
+              ctx.beginPath();
+              ctx.arc(x, y, radius, 0, 2 * Math.PI);
+              ctx.fillStyle = color;
+              ctx.fill();
+              ctx.restore();
+            });
+          }
+        }]
       });
     }
 
