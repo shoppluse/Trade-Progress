@@ -63,7 +63,6 @@
       margin-bottom: 25px;
       border: 1px solid rgba(255,255,255,0.1);
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-      height: 420px; /* bigger graph on laptop */
     }
     
     .entry-form {
@@ -311,6 +310,7 @@
         margin-bottom: 18px;
       }
 
+      /* stats: 2 cards per row */
       .stats { 
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
@@ -324,12 +324,13 @@
 
       .chart-container {
         padding: 14px;
-        height: auto; /* override fixed height on mobile */
       }
+      /* limit chart height only on mobile */
       #pnlChart {
         height: 260px !important;
       }
 
+      /* form: 3 columns so before/after tax stay in same row */
       .form-grid { 
         grid-template-columns: repeat(3, minmax(0, 1fr)); 
         gap: 10px;
@@ -408,6 +409,7 @@
       </div>
       <div style="overflow-x:auto;">
         <div style="min-width:600px;">
+          <!-- no fixed height attribute: desktop chart stays big -->
           <canvas id="pnlChart"></canvas>
         </div>
       </div>
@@ -479,7 +481,7 @@
         <form id="notesFormOverlay" class="notes-form">
           <div class="notes-form-main">
             <label style="font-size:13px;display:block;margin-bottom:4px;">Note</label>
-            <textarea id="noteTextOverlay" placeholder="What did you learn from today's trades?"></textarea>
+            <textarea id="noteTextOverlay" placeholder="What did you learn from today’s trades?"></textarea>
           </div>
           <div class="notes-sidebar">
             <label style="font-size:13px;display:block;margin-bottom:4px;">📎 Attach Images / PDFs</label>
@@ -741,13 +743,13 @@
     }
 
     function renderChart() {
-      const ctxCanvas = document.getElementById('pnlChart');
+      const ctx        = document.getElementById('pnlChart');
       const dataTrades = getFilteredTradesForChart();
 
       if (!dataTrades.length) {
         if (chart) chart.destroy();
-        const temp = ctxCanvas.getContext('2d');
-        temp.clearRect(0,0,ctxCanvas.width,ctxCanvas.height);
+        const temp = ctx.getContext('2d');
+        temp.clearRect(0,0,ctx.width,ctx.height);
         temp.fillStyle = 'rgba(148,163,184,0.8)';
         temp.font = '14px Segoe UI';
         temp.fillText('No trades in selected period.', 20, 40);
@@ -775,11 +777,8 @@
       const data = dataTrades.map(t => t.afterTax);
 
       if (chart) chart.destroy();
-
-      const today = new Date();
-      today.setHours(0,0,0,0);
-
-      chart = new Chart(ctxCanvas, {
+      
+      chart = new Chart(ctx, {
         type: 'line',
         data: {
           labels,
@@ -787,9 +786,9 @@
             label: 'Daily P&L (After Tax)',
             data,
             borderColor: '#10b981',
-            backgroundColor: 'transparent',   // no area/shadow
+            backgroundColor: 'rgba(16,185,129,0.2)',
             tension: 0.4,
-            fill: false,                      // line only
+            fill: true,
             spanGaps: false,
             pointRadius: 4,
             pointHoverRadius: 6
@@ -806,10 +805,7 @@
             },
             x: { 
               grid: { color: 'rgba(255,255,255,0.08)' }, 
-              ticks: { 
-                callback: (value, index) => labels[index],
-                color: 'rgba(255,255,255,0.7)'
-              }
+              ticks: { color: 'rgba(255,255,255,0.7)' }
             }
           },
           plugins: {
@@ -828,62 +824,7 @@
               }
             }
           }
-        },
-        plugins: [{
-          afterDraw(chartInstance) {
-            const ctx = chartInstance.ctx;
-            const xScale = chartInstance.scales.x;
-            const ticks = xScale.ticks;
-            const labelsArr = chartInstance.data.labels;
-
-            ctx.save();
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            const fontSize = xScale.options.ticks.font?.size || 12;
-            ctx.font = fontSize + 'px Segoe UI';
-
-            ticks.forEach((tick, index) => {
-              const label = labelsArr[index];
-              if (!label) return;
-
-              const trade = dataTrades[index];
-              if (!trade) return;
-
-              const d = new Date(trade.date);
-              d.setHours(0,0,0,0);
-
-              const isFuture = d > today;
-              if (isFuture) return;                // no "_" for future days
-
-              const pnl = trade.afterTax;
-
-              let lineColor = '#6b7280';           // today grey by default
-              if (d.getTime() !== today.getTime()) {
-                if (pnl > 0) lineColor = '#10b981';    // profit
-                else if (pnl < 0) lineColor = '#ef4444'; // loss
-                else lineColor = '#6b7280';
-              }
-
-              const x = xScale.getPixelForTick(index);
-              const baseY = xScale.bottom + 6;     // just under axis line
-              const halfWidth = 8;                // length of "_"
-
-              // colored underscore
-              ctx.beginPath();
-              ctx.moveTo(x - halfWidth, baseY);
-              ctx.lineTo(x + halfWidth, baseY);
-              ctx.strokeStyle = lineColor;
-              ctx.lineWidth = 3;
-              ctx.stroke();
-
-              // date label slightly below underscore
-              ctx.fillStyle = '#ffffff';
-              ctx.fillText(label, x, baseY + 4);
-            });
-
-            ctx.restore();
-          }
-        }]
+        }
       });
     }
 
