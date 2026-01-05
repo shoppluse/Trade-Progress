@@ -63,6 +63,7 @@
       margin-bottom: 25px;
       border: 1px solid rgba(255,255,255,0.1);
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      height: 420px; /* bigger graph on laptop */
     }
     
     .entry-form {
@@ -297,68 +298,94 @@
       cursor: pointer;
     }
 
-    /* Mobile tweaks only */
+    /* Mobile tweaks */
     @media (max-width: 768px) {
       body {
-        padding: 12px;
+        padding: 10px;
       }
       .container {
         max-width: 100%;
       }
-      h1 { 
-        font-size: 1.8em; 
-        margin-bottom: 18px;
+      h1 {
+        font-size: 1.6em;
+        margin-bottom: 14px;
       }
 
-      /* stats: 2 cards per row */
-      .stats { 
+      .stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px;
       }
       .stat-card {
-        padding: 16px;
+        padding: 12px;
+        border-radius: 14px;
       }
       .stat-value {
-        font-size: 1.7em;
+        font-size: 1.4em;
       }
 
       .chart-container {
-        padding: 14px;
+        padding: 10px 10px 6px;
+        height: auto;
+        border-radius: 14px;
       }
-      /* limit chart height only on mobile */
       #pnlChart {
-        height: 260px !important;
+        height: 230px !important;
+      }
+      .chart-container .tf-btn {
+        padding: 4px 8px;
+        font-size: 10px;
       }
 
-      /* form: 3 columns so before/after tax stay in same row */
-      .form-grid { 
-        grid-template-columns: repeat(3, minmax(0, 1fr)); 
-        gap: 10px;
-        align-items: end;
-      }
-      .form-row { 
-        flex-direction: column; 
-        align-items: stretch; 
-        gap: 10px;
-      }
       .entry-form {
-        padding: 18px;
+        padding: 14px;
+        border-radius: 16px;
+        margin-top: 10px;
       }
-      .notes-card {
-        padding: 18px;
+
+      .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
       }
-      .notes-sidebar {
-        width: 100%;
-      }
-      .notes-form {
+
+      .form-row {
         flex-direction: column;
+        gap: 8px;
       }
+
+      input, textarea, select {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+
+      button.add-trade {
+        font-size: 16px;
+        padding: 14px;
+      }
+
       .history-link-wrapper {
         justify-content: center;
+        margin-top: 10px;
       }
       .history-link {
         width: 100%;
         text-align: center;
+        padding: 8px 0;
+        border-radius: 999px;
+      }
+
+      #notesOverlay {
+        padding: 10px;
+      }
+      .notes-card {
+        padding: 14px;
+        border-radius: 14px;
+      }
+      .notes-form {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .notes-sidebar {
+        width: 100%;
       }
     }
   </style>
@@ -409,7 +436,6 @@
       </div>
       <div style="overflow-x:auto;">
         <div style="min-width:600px;">
-          <!-- no fixed height attribute: desktop chart stays big -->
           <canvas id="pnlChart"></canvas>
         </div>
       </div>
@@ -481,7 +507,7 @@
         <form id="notesFormOverlay" class="notes-form">
           <div class="notes-form-main">
             <label style="font-size:13px;display:block;margin-bottom:4px;">Note</label>
-            <textarea id="noteTextOverlay" placeholder="What did you learn from today’s trades?"></textarea>
+            <textarea id="noteTextOverlay" placeholder="What did you learn from today's trades?"></textarea>
           </div>
           <div class="notes-sidebar">
             <label style="font-size:13px;display:block;margin-bottom:4px;">📎 Attach Images / PDFs</label>
@@ -743,13 +769,13 @@
     }
 
     function renderChart() {
-      const ctx        = document.getElementById('pnlChart');
+      const ctxCanvas = document.getElementById('pnlChart');
       const dataTrades = getFilteredTradesForChart();
 
       if (!dataTrades.length) {
         if (chart) chart.destroy();
-        const temp = ctx.getContext('2d');
-        temp.clearRect(0,0,ctx.width,ctx.height);
+        const temp = ctxCanvas.getContext('2d');
+        temp.clearRect(0,0,ctxCanvas.width,ctxCanvas.height);
         temp.fillStyle = 'rgba(148,163,184,0.8)';
         temp.font = '14px Segoe UI';
         temp.fillText('No trades in selected period.', 20, 40);
@@ -777,8 +803,11 @@
       const data = dataTrades.map(t => t.afterTax);
 
       if (chart) chart.destroy();
-      
-      chart = new Chart(ctx, {
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      chart = new Chart(ctxCanvas, {
         type: 'line',
         data: {
           labels,
@@ -786,9 +815,9 @@
             label: 'Daily P&L (After Tax)',
             data,
             borderColor: '#10b981',
-            backgroundColor: 'rgba(16,185,129,0.2)',
+            backgroundColor: 'transparent',
             tension: 0.4,
-            fill: true,
+            fill: false,
             spanGaps: false,
             pointRadius: 4,
             pointHoverRadius: 6
@@ -805,7 +834,10 @@
             },
             x: { 
               grid: { color: 'rgba(255,255,255,0.08)' }, 
-              ticks: { color: 'rgba(255,255,255,0.7)' }
+              ticks: { 
+                callback: (value, index) => labels[index],
+                color: 'rgba(255,255,255,0.7)'
+              }
             }
           },
           plugins: {
@@ -824,7 +856,60 @@
               }
             }
           }
-        }
+        },
+        plugins: [{
+          afterDraw(chartInstance) {
+            const ctx = chartInstance.ctx;
+            const xScale = chartInstance.scales.x;
+            const ticks = xScale.ticks;
+            const labelsArr = chartInstance.data.labels;
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const fontSize = xScale.options.ticks.font?.size || 12;
+            ctx.font = fontSize + 'px Segoe UI';
+
+            ticks.forEach((tick, index) => {
+              const label = labelsArr[index];
+              if (!label) return;
+
+              const trade = dataTrades[index];
+              if (!trade) return;
+
+              const d = new Date(trade.date);
+              d.setHours(0,0,0,0);
+
+              const isFuture = d > today;
+              if (isFuture) return;
+
+              const pnl = trade.afterTax;
+
+              let lineColor = '#6b7280';
+              if (d.getTime() !== today.getTime()) {
+                if (pnl > 0) lineColor = '#10b981';
+                else if (pnl < 0) lineColor = '#ef4444';
+                else lineColor = '#6b7280';
+              }
+
+              const x = xScale.getPixelForTick(index);
+              const baseY = xScale.bottom + 6;
+              const halfWidth = 8;
+
+              ctx.beginPath();
+              ctx.moveTo(x - halfWidth, baseY);
+              ctx.lineTo(x + halfWidth, baseY);
+              ctx.strokeStyle = lineColor;
+              ctx.lineWidth = 3;
+              ctx.stroke();
+
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(label, x, baseY + 4);
+            });
+
+            ctx.restore();
+          }
+        }]
       });
     }
 
