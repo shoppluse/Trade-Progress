@@ -23,7 +23,7 @@
       gap: 10px;
     }
     .title {
-      font-size: 1.6em;
+      font-size: 1.8em;
       font-weight: 700;
       letter-spacing: 0.02em;
     }
@@ -160,89 +160,7 @@
     .btn-chip.delete { border-color: #f97373; }
     .btn-chip:hover { transform: scale(1.05); }
 
-    /* Mobile tweaks only */
-    @media (max-width: 768px) {
-      body {
-        padding: 12px;
-      }
-      .container {
-        max-width: 100%;
-      }
-      .top-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      .title {
-        font-size: 1.3em;
-      }
-      .back-btn {
-        width: 100%;
-        text-align: center;
-      }
-      .history {
-        padding: 14px;
-      }
-
-      /* summary chips: 2 per row */
-      .summary-bar {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin-bottom: 16px;
-      }
-      .summary-chip {
-        width: 100%;
-      }
-
-      .history-header { 
-        display: none; 
-      }
-
-      .entry {
-        grid-template-columns: 1fr 1fr;
-        grid-template-areas:
-          "date pnlBefore"
-          "pnlAfter pnlAfter"
-          "reason reason"
-          "files files"
-          "edit delete";
-        row-gap: 6px;
-      }
-      .entry .date { 
-        grid-area: date; 
-        text-align: left; 
-        font-size: 13px;
-      }
-      .entry .pnl-before { 
-        grid-area: pnlBefore; 
-        justify-self: end; 
-      }
-      .entry .pnl-after { 
-        grid-area: pnlAfter; 
-        justify-self: stretch; 
-        margin-top: 2px;
-      }
-      .entry .reason { 
-        grid-area: reason; 
-        font-size: 12px;
-      }
-      .entry .trade-files { 
-        grid-area: files; 
-        justify-self: flex-start; 
-      }
-      .entry .btn-edit { 
-        grid-area: edit; 
-        justify-self: flex-start; 
-        width: 100%;
-      }
-      .entry .btn-delete { 
-        grid-area: delete; 
-        justify-self: flex-start; 
-        width: 100%;
-      }
-    }
-
+    /* Image modal */
     #imgModal {
       display:none;position:fixed;inset:0;z-index:9999;
       background:rgba(0,0,0,0.85);
@@ -260,6 +178,102 @@
       background:#ef4444;color:white;
       font-weight:bold;cursor:pointer;
       box-shadow:0 10px 25px rgba(0,0,0,0.8);
+    }
+
+    /* Mobile tweaks */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        max-width: 100%;
+      }
+
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .title {
+        font-size: 1.4em;
+      }
+      .back-btn {
+        width: 100%;
+        text-align: center;
+        padding: 8px 0;
+      }
+
+      .history {
+        padding: 12px;
+        border-radius: 16px;
+      }
+
+      .summary-bar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .summary-chip {
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        padding: 6px 4px;
+      }
+
+      .history-header {
+        display: none;
+      }
+
+      .entry {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "date"
+          "pnlBefore"
+          "pnlAfter"
+          "reason"
+          "files"
+          "edit"
+          "delete";
+        row-gap: 6px;
+        padding: 12px;
+        border-radius: 14px;
+      }
+      .entry .date { 
+        grid-area: date; 
+        font-size: 13px;
+      }
+      .entry .pnl-before { 
+        grid-area: pnlBefore; 
+        justify-self: stretch;
+      }
+      .entry .pnl-after { 
+        grid-area: pnlAfter; 
+        justify-self: stretch;
+      }
+      .entry .reason { 
+        grid-area: reason; 
+        font-size: 12px;
+      }
+      .entry .trade-files {
+        grid-area: files;
+      }
+      .entry .btn-edit { 
+        grid-area: edit; 
+        width: 100%;
+        justify-self: stretch;
+      }
+      .entry .btn-delete { 
+        grid-area: delete; 
+        width: 100%;
+        justify-self: stretch;
+      }
+
+      .pnl-display {
+        width: 100%;
+        text-align: center;
+        font-size: 0.95em;
+      }
     }
   </style>
 </head>
